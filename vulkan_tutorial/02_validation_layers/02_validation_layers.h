@@ -7,7 +7,7 @@
 #include <GLFW/glfw3.h>
 
 /**
- * create debug messenger
+ * 创建debug messenger
  * @param instance
  * @param pCreateInfo debug messenger info
  * @param pAllocator
@@ -22,7 +22,7 @@ VkResult CreateDebugUtilsMessengerEXT(
 );
 
 /**
- * destroy debug messenger
+ * 销毁debug messenger
  * @param instance
  * @param debugMessenger debug messenger
  * @param pAllocator

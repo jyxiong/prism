@@ -136,13 +136,20 @@ void HelloTriangleApplication::createInstance()
     createInfo.pApplicationInfo = &appInfo;
 
     // 添加校验层信息
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     if (enableValidationLayers)
     {
         createInfo.enabledLayerCount = static_cast<unsigned int>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
+
+        // 使用pNext创建单独的debug messenger，记录vkCreateInstance和vkDestroyInstance两个函数的调试信息
+        populateDebugMessengerCreateInfo(debugCreateInfo);
+        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
     } else
     {
         createInfo.enabledLayerCount = 0;
+
+        createInfo.pNext = nullptr;
     }
 
     // 添加需要的扩展
@@ -231,7 +238,7 @@ void HelloTriangleApplication::setupDebugMessenger()
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
 
-    // 创建debug messenger
+    // 创建debug messenger，记录instance生命周期内的调试信息
     if (CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to set up debug messenger!");
