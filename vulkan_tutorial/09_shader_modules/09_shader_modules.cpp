@@ -636,8 +636,8 @@ void HelloTriangleApplication::createImageViews()
 void HelloTriangleApplication::createGraphicsPipeline()
 {
     // 读取着色器文件
-    auto vertShaderCode = readFile("shaders/vert.spv");
-    auto fragShaderCode = readFile("shaders/frag.spv");
+    auto vertShaderCode = readFile("../shaders/vert.spv");
+    auto fragShaderCode = readFile("../shaders/frag.spv");
 
     // 创建着色器模块
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
@@ -676,7 +676,7 @@ std::vector<char> HelloTriangleApplication::readFile(const std::string &filename
     }
 
     // 从尾部开始读取文件，能够获取文件大小
-    size_t fileSize = (size_t) file.tellg();
+    auto fileSize = file.tellg();
     std::vector<char> buffer(fileSize);
 
     // 从文件头开始读取文件内容
