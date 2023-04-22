@@ -1,4 +1,4 @@
-#include "10_fixed_functions.h"
+#include "11_render_passes.h"
 
 #include <stdexcept>
 #include <iostream>
@@ -93,6 +93,8 @@ void HelloTriangleApplication::initVulkan()
 
     createImageViews();
 
+    createRenderPass();
+
     createGraphicsPipeline();
 }
 
@@ -108,6 +110,9 @@ void HelloTriangleApplication::cleanup()
 {
     // 销毁管线布局
     vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
+
+    // 销毁渲染通道
+    vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 
     // 销毁图像视图
     for (auto imageView: m_swapChainImageViews)
@@ -636,6 +641,58 @@ void HelloTriangleApplication::createImageViews()
     }
 }
 
+void HelloTriangleApplication::createRenderPass()
+{
+    // 创建颜色附件描述信息
+    VkAttachmentDescription colorAttachment{};
+    // 附件的格式
+    colorAttachment.format = m_swapChainImageFormat;
+    // 附件的采样数(MSAA)
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    // 附件的加载操作，用于颜色和深度附件
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    // 附件的存储操作，用于颜色和深度附件
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    // 附件的加载操作，用于模板附件
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    // 附件的存储操作，用于模板附件
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    // 附件的初始布局
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    // 附件的最终布局
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    // 创建颜色附件引用
+    VkAttachmentReference colorAttachmentRef{};
+    // 附件的索引
+    colorAttachmentRef.attachment = 0;
+    // 附件的布局
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    // 创建渲染子过程描述信息
+    VkSubpassDescription subpass{};
+    // 渲染子过程的类型
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    // 渲染子过程的颜色附件引用
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+
+    // 创建渲染过程描述信息
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    // 渲染过程的颜色附件描述信息
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments = &colorAttachment;
+    // 渲染过程的渲染子过程描述信息
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    // 创建渲染过程
+    if (vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create render pass!");
+    }
+}
+
 void HelloTriangleApplication::createGraphicsPipeline()
 {
     // 读取着色器文件
@@ -830,4 +887,3 @@ VkShaderModule HelloTriangleApplication::createShaderModule(const std::vector<ch
 
     return shaderModule;
 }
-
