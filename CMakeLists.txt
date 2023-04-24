@@ -14,4 +14,5 @@ find_package (Vulkan REQUIRED)
 add_subdirectory(3rdparty)
 
 add_subdirectory(vulkan_tutorial)
+add_subdirectory(vulkan_guide)
 #add_subdirectory(toy2d)
