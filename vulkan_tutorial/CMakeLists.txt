@@ -1,5 +1,7 @@
 project(vulkan_tutorial)
 
+find_package(Vulkan REQUIRED)
+
 # 添加glslangValidator
 add_executable(glslang::validator IMPORTED)
 find_program(GLSLANG_VALIDATOR "glslangValidator" HINTS $ENV{VULKAN_SDK}/bin REQUIRED)
