@@ -23,7 +23,27 @@ if (NOT TARGET glm)
     set_target_properties(uninstall PROPERTIES FOLDER ${THIRD_PARTY_DIR}/glm)
 endif ()
 
+if (NOT TARGET imgui)
+    include(imgui)
+    set_target_properties(imgui PROPERTIES FOLDER ${THIRD_PARTY_DIR}/imgui)
+endif ()
+
 if (NOT TARGET stb)
     include(stb)
     set_target_properties(stb PROPERTIES FOLDER ${THIRD_PARTY_DIR}/stb)
+endif ()
+
+if (NOT TARGET tinyobjloader)
+    add_subdirectory(tinyobjloader)
+    set_target_properties(tinyobjloader PROPERTIES FOLDER ${THIRD_PARTY_DIR}/tinyobjloader)
+endif ()
+
+if (NOT TARGET vk-bootstrap)
+    add_subdirectory(vkbootstrap)
+    set_target_properties(vk-bootstrap PROPERTIES FOLDER ${THIRD_PARTY_DIR}/vkbootstrap)
+endif ()
+
+if (NOT TARGET VulkanMemoryAllocator)
+    add_subdirectory(vma)
+    set_target_properties(VulkanMemoryAllocator PROPERTIES FOLDER ${THIRD_PARTY_DIR}/vma)
 endif ()

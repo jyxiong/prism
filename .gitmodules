@@ -7,3 +7,15 @@
 [submodule "3rdparty/stb"]
 	path = 3rdparty/stb
 	url = git@github.com:nothings/stb.git
+[submodule "3rdparty/tinyobjloader"]
+	path = 3rdparty/tinyobjloader
+	url = git@github.com:tinyobjloader/tinyobjloader.git
+[submodule "3rdparty/imgui"]
+	path = 3rdparty/imgui
+	url = git@github.com:ocornut/imgui.git
+[submodule "3rdparty/vkbootstrap"]
+	path = 3rdparty/vkbootstrap
+	url = git@github.com:charles-lunarg/vk-bootstrap.git
+[submodule "3rdparty/vma"]
+	path = 3rdparty/vma
+	url = git@github.com:GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git

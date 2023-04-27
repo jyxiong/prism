@@ -1,7 +1,5 @@
 project(vulkan_guide)
 
-find_package(Vulkan REQUIRED)
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
 add_subdirectory(chapter0)

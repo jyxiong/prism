@@ -9,6 +9,8 @@ if (WIN32)
     add_compile_options(/wd4819)
 endif ()
 
+find_package(Vulkan REQUIRED)
+
 add_subdirectory(3rdparty)
 
 add_subdirectory(vulkan_tutorial)

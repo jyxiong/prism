@@ -1,5 +1,9 @@
-build
-
-toy2d
-
+# 编辑器文件夹
 .idea
+
+# 编译文件夹
+build
+bin
+
+# 临时文件夹
+toy2d
