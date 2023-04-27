@@ -2,8 +2,6 @@ project(vulkan_guide)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
-add_subdirectory(chapter0)
-
 find_program(GLSL_VALIDATOR glslangValidator HINTS "$ENV{VULKAN_SDK}/Bin")
 
 file(GLOB_RECURSE GLSL_SOURCE_FILES
@@ -28,3 +26,6 @@ endforeach (GLSL)
 add_custom_target(
     Shaders
     DEPENDS ${SPIRV_BINARY_FILES})
+
+add_subdirectory(chapter0)
+add_subdirectory(chapter1)
