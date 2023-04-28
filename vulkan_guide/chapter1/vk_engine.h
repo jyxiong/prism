@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <vulkan/vulkan.h>
 #include "GLFW/glfw3.h"
 #include "vk_type.h"
 
@@ -26,6 +27,12 @@ private:
     std::vector<VkImage> m_images;
     std::vector<VkImageView> m_image_views;
 
+    // 命令缓冲
+    VkQueue m_queue;
+    unsigned int m_queue_family;
+    VkCommandPool m_command_pool;
+    VkCommandBuffer m_command_buffer;
+
 public:
     // 初始化引擎
     void init();
@@ -44,5 +51,7 @@ private:
     void init_vulkan();
 
     void init_swap_chain();
+
+    void init_command();
 
 }; // class VulkanEngine

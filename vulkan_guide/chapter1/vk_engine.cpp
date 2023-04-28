@@ -3,6 +3,7 @@
 #include "GLFW/glfw3.h"
 
 #include "VkBootstrap.h"
+#include "vk_initializer.h"
 
 #define VK_CHECK(x) \
     do { \
@@ -32,6 +33,8 @@ void VulkanEngine::init()
 
     init_swap_chain();
 
+    init_command();
+
     // 初始化完成
     m_is_initialized = true;
 }
@@ -40,6 +43,8 @@ void VulkanEngine::cleanup()
 {
     if (m_is_initialized)
     {
+        vkDestroyCommandPool(m_device, m_command_pool, nullptr);
+
         for (auto &m_image_view: m_image_views)
         {
             vkDestroyImageView(m_device, m_image_view, nullptr);
@@ -102,11 +107,16 @@ void VulkanEngine::init_vulkan()
         .value();
     m_physical_device = physical_device.physical_device;
 
+    // 创建逻辑设备
     vkb::DeviceBuilder device_builder{ physical_device };
     auto vkb_device = device_builder
         .build()
         .value();
     m_device = vkb_device.device;
+
+    // 获取队列句柄和队列族索引
+    m_queue = vkb_device.get_queue(vkb::QueueType::graphics).value();
+    m_queue_family = vkb_device.get_queue_index(vkb::QueueType::graphics).value();
 }
 
 void VulkanEngine::init_swap_chain()
@@ -123,4 +133,13 @@ void VulkanEngine::init_swap_chain()
     m_image_format = swap_chain.image_format;
     m_images = swap_chain.get_images().value();
     m_image_views = swap_chain.get_image_views().value();
+}
+
+void VulkanEngine::init_command()
+{
+    auto command_pool_info = vk_init::command_pool_create_info(m_queue_family);
+    VK_CHECK(vkCreateCommandPool(m_device, &command_pool_info, nullptr, &m_command_pool));
+
+    auto command_buffer_info = vk_init::command_buffer_allocate_info(m_command_pool);
+    VK_CHECK(vkAllocateCommandBuffers(m_device, &command_buffer_info, &m_command_buffer));
 }
