@@ -33,6 +33,10 @@ private:
     VkCommandPool m_command_pool;
     VkCommandBuffer m_command_buffer;
 
+    // 渲染通道
+    VkRenderPass m_render_pass;
+    std::vector<VkFramebuffer> m_framebuffers;
+
 public:
     // 初始化引擎
     void init();
@@ -53,5 +57,9 @@ private:
     void init_swap_chain();
 
     void init_command();
+
+    void init_default_render_pass();
+
+    void init_framebuffers();
 
 }; // class VulkanEngine

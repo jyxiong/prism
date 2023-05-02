@@ -35,6 +35,10 @@ void VulkanEngine::init()
 
     init_command();
 
+    init_default_render_pass();
+
+    init_framebuffers();
+
     // 初始化完成
     m_is_initialized = true;
 }
@@ -45,9 +49,13 @@ void VulkanEngine::cleanup()
     {
         vkDestroyCommandPool(m_device, m_command_pool, nullptr);
 
-        for (auto &m_image_view: m_image_views)
+        vkDestroyRenderPass(m_device, m_render_pass, nullptr);
+
+        for (unsigned int i = 0; i < m_framebuffers.size(); ++i)
         {
-            vkDestroyImageView(m_device, m_image_view, nullptr);
+            vkDestroyFramebuffer(m_device, m_framebuffers[i], nullptr);
+
+            vkDestroyImageView(m_device, m_image_views[i], nullptr);
         }
 
         vkDestroySwapchainKHR(m_device, m_swap_chain, nullptr);
@@ -84,6 +92,7 @@ void VulkanEngine::run()
 
 void VulkanEngine::init_vulkan()
 {
+    // 创建Vulkan实例
     vkb::InstanceBuilder inst_builder;
     auto vkb_inst = inst_builder
         .set_app_name("Vulkan Guide") // 设置应用程序名称
@@ -142,4 +151,54 @@ void VulkanEngine::init_command()
 
     auto command_buffer_info = vk_init::command_buffer_allocate_info(m_command_pool);
     VK_CHECK(vkAllocateCommandBuffers(m_device, &command_buffer_info, &m_command_buffer));
+}
+
+void VulkanEngine::init_default_render_pass()
+{
+    VkAttachmentDescription color_attachment{}; // 颜色附件
+    color_attachment.format = m_image_format; // 图像格式
+    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT; // 采样数
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; // 清除颜色
+    color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // 保存颜色
+    color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; // 不关注模板
+    color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; // 不关注模板
+    color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; // 不关注之前的图像布局
+    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // 最终图像布局为显示
+
+    VkAttachmentReference color_attachment_ref{}; // 颜色附件引用
+    color_attachment_ref.attachment = 0; // 引用附件索引
+    color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // 图像布局
+
+    VkSubpassDescription subpass{}; // 子通道
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS; // 绑定点
+    subpass.colorAttachmentCount = 1; // 颜色附件数量
+    subpass.pColorAttachments = &color_attachment_ref; // 颜色附件引用
+
+    VkRenderPassCreateInfo render_pass_info{}; // 渲染通道信息
+    render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO; // 类型
+    render_pass_info.attachmentCount = 1; // 附件数量
+    render_pass_info.pAttachments = &color_attachment; // 附件
+    render_pass_info.subpassCount = 1; // 子通道数量
+    render_pass_info.pSubpasses = &subpass; // 子通道
+
+    VK_CHECK(vkCreateRenderPass(m_device, &render_pass_info, nullptr, &m_render_pass));
+}
+
+void VulkanEngine::init_framebuffers()
+{
+    VkFramebufferCreateInfo framebuffer_info{}; // 帧缓冲信息
+    framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO; // 类型
+    framebuffer_info.pNext = nullptr;
+    framebuffer_info.renderPass = m_render_pass; // 渲染通道
+    framebuffer_info.attachmentCount = 1; // 附件数量
+    framebuffer_info.width = m_window_extent.width; // 宽度
+    framebuffer_info.height = m_window_extent.height; // 高度
+    framebuffer_info.layers = 1; // 层数
+
+    m_framebuffers.resize(m_image_views.size()); // 调整帧缓冲数量
+    for (size_t i = 0; i < m_framebuffers.size(); ++i)
+    {
+        framebuffer_info.pAttachments = &m_image_views[i]; // 附件
+        VK_CHECK(vkCreateFramebuffer(m_device, &framebuffer_info, nullptr, &m_framebuffers[i]));
+    }
 }
