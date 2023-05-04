@@ -9,8 +9,8 @@ class VulkanEngine
 {
 private:
     bool m_is_initialized{ false };
-
-    VkExtent2D m_window_extent{1280, 960};
+    unsigned int m_frame_number{ 0 };
+    VkExtent2D m_window_extent{ 1280, 960 };
 
     GLFWwindow *m_window{ nullptr };
 
@@ -37,6 +37,11 @@ private:
     VkRenderPass m_render_pass;
     std::vector<VkFramebuffer> m_framebuffers;
 
+    // 同步
+    VkSemaphore m_present_semaphore;
+    VkSemaphore m_render_semaphore;
+    VkFence m_render_fence;
+
 public:
     // 初始化引擎
     void init();
@@ -61,5 +66,7 @@ private:
     void init_default_render_pass();
 
     void init_framebuffers();
+
+    void init_sync_structures();
 
 }; // class VulkanEngine

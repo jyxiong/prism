@@ -39,6 +39,8 @@ void VulkanEngine::init()
 
     init_framebuffers();
 
+    init_sync_structures();
+
     // 初始化完成
     m_is_initialized = true;
 }
@@ -47,6 +49,12 @@ void VulkanEngine::cleanup()
 {
     if (m_is_initialized)
     {
+        vkDeviceWaitIdle(m_device);
+
+        vkDestroySemaphore(m_device, m_render_semaphore, nullptr);
+        vkDestroySemaphore(m_device, m_present_semaphore, nullptr);
+        vkDestroyFence(m_device, m_render_fence, nullptr);
+
         vkDestroyCommandPool(m_device, m_command_pool, nullptr);
 
         vkDestroyRenderPass(m_device, m_render_pass, nullptr);
@@ -77,7 +85,66 @@ void VulkanEngine::cleanup()
 
 void VulkanEngine::draw()
 {
+    // 等待GPU
+    VK_CHECK(vkWaitForFences(m_device, 1, &m_render_fence, true, UINT64_MAX));
+    VK_CHECK(vkResetFences(m_device, 1, &m_render_fence));
 
+    // 重置命令缓冲
+    VK_CHECK(vkResetCommandBuffer(m_command_buffer, 0));
+
+    // 获取图像
+    uint32_t image_index;
+    VK_CHECK(vkAcquireNextImageKHR(m_device,
+                                   m_swap_chain,
+                                   UINT64_MAX,
+                                   m_present_semaphore,
+                                   nullptr,
+                                   &image_index));
+
+
+    // 开始命令缓冲
+    auto cmd_begin_info = vk_init::command_buffer_begin_info(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    VK_CHECK(vkBeginCommandBuffer(m_command_buffer, &cmd_begin_info));
+
+    // 背景颜色
+    VkClearValue clear_value;
+    float flash = fabsf(sinf((float) m_frame_number / 120.f));
+    clear_value.color = { 0.0f, 0.0f, flash, 1.0f };
+
+    // 渲染通道
+    auto rp_begin_info = vk_init::render_pass_begin_info(m_render_pass, m_window_extent, m_framebuffers[image_index]);
+    rp_begin_info.clearValueCount = 1;
+    rp_begin_info.pClearValues = &clear_value;
+
+    // 开始渲染通道
+    vkCmdBeginRenderPass(m_command_buffer, &rp_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
+    // 结束渲染通道
+    vkCmdEndRenderPass(m_command_buffer);
+
+    // 结束命令缓冲
+    VK_CHECK(vkEndCommandBuffer(m_command_buffer));
+
+    // 提交命令缓冲
+    auto submit_info = vk_init::submit_info(&m_command_buffer);
+    VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    submit_info.pWaitDstStageMask = &wait_stage;
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = &m_present_semaphore;
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = &m_render_semaphore;
+    VK_CHECK(vkQueueSubmit(m_queue, 1, &submit_info, m_render_fence));
+
+    // 提交图像
+    auto present_info = vk_init::present_info();
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = &m_swap_chain;
+    present_info.pImageIndices = &image_index;
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = &m_render_semaphore;
+    VK_CHECK(vkQueuePresentKHR(m_queue, &present_info));
+
+    ++m_frame_number;
 }
 
 void VulkanEngine::run()
@@ -85,9 +152,9 @@ void VulkanEngine::run()
     while (!glfwWindowShouldClose(m_window))
     {
         glfwPollEvents();
-    }
 
-    draw();
+        draw();
+    }
 }
 
 void VulkanEngine::init_vulkan()
@@ -146,7 +213,8 @@ void VulkanEngine::init_swap_chain()
 
 void VulkanEngine::init_command()
 {
-    auto command_pool_info = vk_init::command_pool_create_info(m_queue_family);
+    auto command_pool_info = vk_init::command_pool_create_info(m_queue_family,
+                                                               VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
     VK_CHECK(vkCreateCommandPool(m_device, &command_pool_info, nullptr, &m_command_pool));
 
     auto command_buffer_info = vk_init::command_buffer_allocate_info(m_command_pool);
@@ -186,14 +254,8 @@ void VulkanEngine::init_default_render_pass()
 
 void VulkanEngine::init_framebuffers()
 {
-    VkFramebufferCreateInfo framebuffer_info{}; // 帧缓冲信息
-    framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO; // 类型
-    framebuffer_info.pNext = nullptr;
-    framebuffer_info.renderPass = m_render_pass; // 渲染通道
+    auto framebuffer_info = vk_init::framebuffer_create_info(m_render_pass, m_window_extent); // 帧缓冲信息
     framebuffer_info.attachmentCount = 1; // 附件数量
-    framebuffer_info.width = m_window_extent.width; // 宽度
-    framebuffer_info.height = m_window_extent.height; // 高度
-    framebuffer_info.layers = 1; // 层数
 
     m_framebuffers.resize(m_image_views.size()); // 调整帧缓冲数量
     for (size_t i = 0; i < m_framebuffers.size(); ++i)
@@ -201,4 +263,14 @@ void VulkanEngine::init_framebuffers()
         framebuffer_info.pAttachments = &m_image_views[i]; // 附件
         VK_CHECK(vkCreateFramebuffer(m_device, &framebuffer_info, nullptr, &m_framebuffers[i]));
     }
+}
+
+void VulkanEngine::init_sync_structures()
+{
+    auto fence_info = vk_init::fence_create_info(VK_FENCE_CREATE_SIGNALED_BIT); // 围栏信息
+    VK_CHECK(vkCreateFence(m_device, &fence_info, nullptr, &m_render_fence));
+
+    auto semaphore_info = vk_init::semaphore_create_info(); // 信号量信息
+    VK_CHECK(vkCreateSemaphore(m_device, &semaphore_info, nullptr, &m_present_semaphore));
+    VK_CHECK(vkCreateSemaphore(m_device, &semaphore_info, nullptr, &m_render_semaphore));
 }
