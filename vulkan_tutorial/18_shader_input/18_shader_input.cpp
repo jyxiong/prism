@@ -120,6 +120,8 @@ void HelloTriangleApplication::mainLoop()
         glfwPollEvents();
         drawFrame();
     }
+
+    vkDeviceWaitIdle(m_device);
 }
 
 void HelloTriangleApplication::cleanup()
@@ -141,7 +143,6 @@ void HelloTriangleApplication::cleanup()
     {
         vkDestroyFramebuffer(m_device, m_swapChainFramebuffers[i], nullptr);
         vkDestroyImageView(m_device, m_swapChainImageViews[i], nullptr);
-
     }
 
     vkDestroySwapchainKHR(m_device, m_swapChain, nullptr);
@@ -988,6 +989,7 @@ void HelloTriangleApplication::createSyncObjects()
 
     VkFenceCreateInfo fenceCreateInfo{};
     fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    // 初始状态为已触发
     fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
     if (vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_imageAvailableSemaphore) != VK_SUCCESS ||
@@ -1000,12 +1002,15 @@ void HelloTriangleApplication::createSyncObjects()
 
 void HelloTriangleApplication::drawFrame()
 {
+    // 等待上一帧渲染完成
     vkWaitForFences(m_device, 1, &m_inFlightFence, VK_TRUE, UINT64_MAX);
     vkResetFences(m_device, 1, &m_inFlightFence);
 
+    // 获取图像在交换链中的索引，并触发信号量
     unsigned int imageIndex;
     vkAcquireNextImageKHR(m_device, m_swapChain, UINT64_MAX, m_imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
+    // 记录命令缓冲
     vkResetCommandBuffer(m_commandBuffer, 0);
     recordCommandBuffer(m_commandBuffer, imageIndex);
 
@@ -1016,10 +1021,12 @@ void HelloTriangleApplication::drawFrame()
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.waitSemaphoreCount = 1;
+    // 等待信号量
     submitInfo.pWaitSemaphores = waitSemaphore;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &m_commandBuffer;
+    // 触发信号量
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphore;
 
@@ -1033,11 +1040,11 @@ void HelloTriangleApplication::drawFrame()
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
+    // 等待信号量
     presentInfo.pWaitSemaphores = signalSemaphore;
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
-    presentInfo.pResults = nullptr;
 
     vkQueuePresentKHR(m_presentQueue, &presentInfo);
 }
