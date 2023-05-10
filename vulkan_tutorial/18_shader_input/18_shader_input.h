@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <vector>
+#include <filesystem>
 #include <vulkan/vulkan.h>
 #include "GLFW/glfw3.h"
 
@@ -41,9 +42,22 @@ private:
     VkQueue m_presentQueue;
 
     VkSwapchainKHR m_swapChain;
-    std::vector<VkImage> m_swapChainImages;
     VkFormat m_swapChainImageFormat;
     VkExtent2D m_swapChainExtent;
+    std::vector<VkImage> m_swapChainImages;
+    std::vector<VkImageView> m_swapChainImageViews;
+    std::vector<VkFramebuffer> m_swapChainFramebuffers;
+
+    VkRenderPass m_renderPass;
+    VkPipelineLayout m_pipelineLayout;
+    VkPipeline m_graphicsPipeline;
+
+    VkCommandPool m_commandPool;
+    VkCommandBuffer m_commandBuffer;
+
+    VkSemaphore m_imageAvailableSemaphore;
+    VkSemaphore m_renderFinishedSemaphore;
+    VkFence m_inFlightFence;
 
 public:
     void run();
@@ -107,4 +121,38 @@ private:
     //------------------------
     // 选择交换链分辨率
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
+    //========================
+    // 创建图像视图
+    void createImageViews();
+    //========================
+    // 创建帧缓冲
+    void createFramebuffers();
+    //========================
+    // 创建渲染通道
+    void createRenderPass();
+    //========================
+    // 创建图形管线
+    void createGraphicsPipeline();
+    // -----------------------
+    // 读取着色器字节码
+    std::vector<char> readFile(const std::filesystem::path &filename);
+    // -----------------------
+    // 创建着色器模块
+    VkShaderModule createShaderModule(const std::vector<char> &code);
+    //========================
+    // 创建命令池
+    void createCommandPool();
+    //========================
+    // 创建命令缓冲
+    void createCommandBuffer();
+    //========================
+    // 记录命令缓冲
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, unsigned int imageIndex);
+    //========================
+    // 创建同步
+    void createSyncObjects();
+    //========================
+    // 绘制
+    void drawFrame();
+
 }; // class HelloTriangleApplication
