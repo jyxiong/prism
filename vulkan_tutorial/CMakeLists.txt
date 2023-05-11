@@ -54,7 +54,7 @@ function(add_chapter CHAPTER_NAME)
 
     set_target_properties(${CHAPTER_NAME} PROPERTIES CXX_STANDARD 17)
 
-    target_link_libraries(${CHAPTER_NAME} Vulkan::Vulkan glfw)
+    target_link_libraries(${CHAPTER_NAME} Vulkan::Vulkan glfw glm)
 
     target_include_directories(${CHAPTER_NAME} PRIVATE ${STB_INCLUDEDIR})
 

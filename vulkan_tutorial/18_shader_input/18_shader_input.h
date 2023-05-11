@@ -3,8 +3,10 @@
 #include <optional>
 #include <vector>
 #include <filesystem>
+#include <array>
 #include <vulkan/vulkan.h>
 #include "GLFW/glfw3.h"
+#include "glm/glm.hpp"
 
 struct QueueFamilyIndices
 {
@@ -24,6 +26,38 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+struct Vertex
+{
+    glm::vec2 pos;
+    glm::vec3 color;
+
+    static VkVertexInputBindingDescription getBindingDescription()
+    {
+        VkVertexInputBindingDescription bindingDescription{};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Vertex);
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        return bindingDescription;
+    };
+
+    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
+    {
+        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+        return attributeDescriptions;
+    }
+};
+
 class HelloTriangleApplication
 {
 
@@ -36,7 +70,6 @@ private:
     VkSurfaceKHR m_surface;
 
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-
     VkDevice m_device;
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
@@ -53,13 +86,17 @@ private:
     VkPipeline m_graphicsPipeline;
 
     VkCommandPool m_commandPool;
+
+    VkBuffer m_vertexBuffer;
+    VkDeviceMemory m_vertexBufferMemory;
+
     std::vector<VkCommandBuffer> m_commandBuffers;
 
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
     std::vector<VkFence> m_inFlightFences;
-
     unsigned int m_currentFrame{ 0 };
+
     bool m_framebufferResized{ false };
 
 public:
@@ -76,7 +113,7 @@ private:
 
     //========================
     // 帧缓冲大小改变
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+    static void framebufferResizeCallback(GLFWwindow *window, int width, int height);
 
     //------------------------
     // 创建vulkan实例
@@ -156,6 +193,11 @@ private:
     //------------------------
     // 创建命令池
     void createCommandPool();
+
+    //------------------------
+    void createVertexBuffer();
+
+    unsigned int findMemoryType(unsigned int typeFilter, VkMemoryPropertyFlags properties);
 
     //------------------------
     // 创建命令缓冲

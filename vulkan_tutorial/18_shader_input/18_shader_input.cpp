@@ -13,6 +13,12 @@ const unsigned int HEIGHT = 480;
 
 const unsigned int MAX_FRAMES_IN_FLIGHT = 2;
 
+const std::vector<Vertex> vertices = {
+    {{ 0,    -0.5 }, { 1, 0, 0 }},
+    {{ 0.5,  0.5 },  { 0, 1, 0 }},
+    {{ -0.5, 0.5 },  { 0, 0, 1 }}
+};
+
 const std::vector<const char *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
@@ -112,6 +118,8 @@ void HelloTriangleApplication::initVulkan()
 
     createCommandPool();
 
+    createVertexBuffer();
+
     createCommandBuffers();
 
     createSyncObjects();
@@ -131,6 +139,9 @@ void HelloTriangleApplication::mainLoop()
 void HelloTriangleApplication::cleanup()
 {
     cleanupSwapChain();
+
+    vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
+    vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
@@ -716,12 +727,15 @@ void HelloTriangleApplication::createGraphicsPipeline()
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageCreateInfo, fragShaderStageCreateInfo };
 
     // 创建顶点输入
+    auto bindingDescription = Vertex::getBindingDescription();
+    auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
     VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo{};
     vertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputCreateInfo.vertexBindingDescriptionCount = 0;
-    vertexInputCreateInfo.pVertexBindingDescriptions = nullptr;
-    vertexInputCreateInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputCreateInfo.pVertexAttributeDescriptions = nullptr;
+    vertexInputCreateInfo.vertexBindingDescriptionCount = 1;
+    vertexInputCreateInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputCreateInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
+    vertexInputCreateInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
     // 创建输入组装
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo{};
@@ -915,6 +929,63 @@ void HelloTriangleApplication::createCommandPool()
     }
 }
 
+void HelloTriangleApplication::createVertexBuffer()
+{
+    VkBufferCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    createInfo.size = sizeof(vertices[0]) * vertices.size();
+    createInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (vkCreateBuffer(m_device, &createInfo, nullptr, &m_vertexBuffer) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create vertex buffer!");
+    }
+
+    // 获取内存需求
+    VkMemoryRequirements memoryRequirements;
+    vkGetBufferMemoryRequirements(m_device, m_vertexBuffer, &memoryRequirements);
+
+    VkMemoryAllocateInfo allocateInfo{};
+    allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocateInfo.allocationSize = memoryRequirements.size;
+    allocateInfo.memoryTypeIndex = findMemoryType(memoryRequirements.memoryTypeBits,
+                                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    if (vkAllocateMemory(m_device, &allocateInfo, nullptr, &m_vertexBufferMemory) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to allocate vertex buffer memory!");
+    }
+
+    // 绑定内存
+    vkBindBufferMemory(m_device, m_vertexBuffer, m_vertexBufferMemory, 0);
+
+    // 内存映射
+    void *data;
+    vkMapMemory(m_device, m_vertexBufferMemory, 0, createInfo.size, 0, &data);
+    // 顶点内存拷贝到映射内存
+    memcpy(data, vertices.data(), (size_t)createInfo.size);
+    vkUnmapMemory(m_device, m_vertexBufferMemory);
+}
+
+unsigned int HelloTriangleApplication::findMemoryType(unsigned int typeFilter, VkMemoryPropertyFlags properties)
+{
+    // 物理设备支持的内存属性
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memoryProperties);
+
+    for (unsigned int i = 0; i < memoryProperties.memoryTypeCount; i++)
+    {
+        if ((typeFilter & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+        {
+            return i;
+        }
+    }
+
+    throw std::runtime_error("failed to find suitable memory type!");
+}
+
 void HelloTriangleApplication::createCommandBuffers()
 {
     m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -962,6 +1033,11 @@ void HelloTriangleApplication::recordCommandBuffer(VkCommandBuffer commandBuffer
     // 命令：绑定管线
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
+    // 命令：绑定顶点缓冲
+    VkBuffer vertexBuffers[] = { m_vertexBuffer };
+    VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
     // 命令：设置视口
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -979,7 +1055,7 @@ void HelloTriangleApplication::recordCommandBuffer(VkCommandBuffer commandBuffer
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
     // 命令：绘制三角形
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+    vkCmdDraw(commandBuffer, vertices.size(), 1, 0, 0);
 
     // 命令：结束渲染通道
     vkCmdEndRenderPass(commandBuffer);
