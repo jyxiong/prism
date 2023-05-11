@@ -11,6 +11,8 @@
 const unsigned int WIDTH = 640;
 const unsigned int HEIGHT = 480;
 
+const unsigned int MAX_FRAMES_IN_FLIGHT = 2;
+
 const std::vector<const char *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
@@ -80,8 +82,10 @@ void HelloTriangleApplication::initWindow()
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     m_window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+
+    glfwSetWindowUserPointer(m_window, this);
+    glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
 }
 
 void HelloTriangleApplication::initVulkan()
@@ -108,7 +112,7 @@ void HelloTriangleApplication::initVulkan()
 
     createCommandPool();
 
-    createCommandBuffer();
+    createCommandBuffers();
 
     createSyncObjects();
 }
@@ -126,10 +130,15 @@ void HelloTriangleApplication::mainLoop()
 
 void HelloTriangleApplication::cleanup()
 {
-    vkDestroySemaphore(m_device, m_imageAvailableSemaphore, nullptr);
-    vkDestroySemaphore(m_device, m_renderFinishedSemaphore, nullptr);
+    cleanupSwapChain();
 
-    vkDestroyFence(m_device, m_inFlightFence, nullptr);
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
+        vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
+
+        vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
+    }
 
     vkDestroyCommandPool(m_device, m_commandPool, nullptr);
 
@@ -138,14 +147,6 @@ void HelloTriangleApplication::cleanup()
     vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 
     vkDestroyRenderPass(m_device, m_renderPass, nullptr);
-
-    for (size_t i = 0; i < m_swapChainFramebuffers.size(); ++i)
-    {
-        vkDestroyFramebuffer(m_device, m_swapChainFramebuffers[i], nullptr);
-        vkDestroyImageView(m_device, m_swapChainImageViews[i], nullptr);
-    }
-
-    vkDestroySwapchainKHR(m_device, m_swapChain, nullptr);
 
     vkDestroyDevice(m_device, nullptr);
 
@@ -157,6 +158,12 @@ void HelloTriangleApplication::cleanup()
 
     glfwDestroyWindow(m_window);
     glfwTerminate();
+}
+
+void HelloTriangleApplication::framebufferResizeCallback(GLFWwindow *window, int width, int height)
+{
+    auto app = reinterpret_cast<HelloTriangleApplication *>(glfwGetWindowUserPointer(window));
+    app->m_framebufferResized = true;
 }
 
 void HelloTriangleApplication::createInstance()
@@ -642,30 +649,6 @@ void HelloTriangleApplication::createImageViews()
     }
 }
 
-void HelloTriangleApplication::createFramebuffers()
-{
-    m_swapChainFramebuffers.resize(m_swapChainImageViews.size());
-
-    for (size_t i = 0; i < m_swapChainFramebuffers.size(); ++i)
-    {
-        VkImageView attachments[] = { m_swapChainImageViews[i] };
-
-        VkFramebufferCreateInfo framebufferCreateInfo{};
-        framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferCreateInfo.renderPass = m_renderPass;
-        framebufferCreateInfo.attachmentCount = 1;
-        framebufferCreateInfo.pAttachments = attachments;
-        framebufferCreateInfo.width = m_swapChainExtent.width;
-        framebufferCreateInfo.height = m_swapChainExtent.height;
-        framebufferCreateInfo.layers = 1;
-
-        if (vkCreateFramebuffer(m_device, &framebufferCreateInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create framebuffer!");
-        }
-    }
-}
-
 void HelloTriangleApplication::createRenderPass()
 {
     VkAttachmentDescription colorAttachment{};
@@ -893,6 +876,30 @@ VkShaderModule HelloTriangleApplication::createShaderModule(const std::vector<ch
     return shaderModule;
 }
 
+void HelloTriangleApplication::createFramebuffers()
+{
+    m_swapChainFramebuffers.resize(m_swapChainImageViews.size());
+
+    for (size_t i = 0; i < m_swapChainImageViews.size(); i++)
+    {
+        VkImageView attachments[] = { m_swapChainImageViews[i] };
+
+        VkFramebufferCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        createInfo.renderPass = m_renderPass;
+        createInfo.attachmentCount = 1;
+        createInfo.pAttachments = attachments;
+        createInfo.width = m_swapChainExtent.width;
+        createInfo.height = m_swapChainExtent.height;
+        createInfo.layers = 1;
+
+        if (vkCreateFramebuffer(m_device, &createInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create framebuffer!");
+        }
+    }
+}
+
 void HelloTriangleApplication::createCommandPool()
 {
     QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice);
@@ -908,15 +915,17 @@ void HelloTriangleApplication::createCommandPool()
     }
 }
 
-void HelloTriangleApplication::createCommandBuffer()
+void HelloTriangleApplication::createCommandBuffers()
 {
-    VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
-    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    commandBufferAllocateInfo.commandPool = m_commandPool;
-    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    commandBufferAllocateInfo.commandBufferCount = 1;
+    m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
-    if (vkAllocateCommandBuffers(m_device, &commandBufferAllocateInfo, &m_commandBuffer) != VK_SUCCESS)
+    VkCommandBufferAllocateInfo allocateInfo{};
+    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocateInfo.commandPool = m_commandPool;
+    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocateInfo.commandBufferCount = m_commandBuffers.size();
+
+    if (vkAllocateCommandBuffers(m_device, &allocateInfo, m_commandBuffers.data()) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to allocate command buffers!");
     }
@@ -984,6 +993,10 @@ void HelloTriangleApplication::recordCommandBuffer(VkCommandBuffer commandBuffer
 
 void HelloTriangleApplication::createSyncObjects()
 {
+    m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+
     VkSemaphoreCreateInfo semaphoreCreateInfo{};
     semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -992,31 +1005,82 @@ void HelloTriangleApplication::createSyncObjects()
     // 初始状态为已触发
     fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    if (vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_imageAvailableSemaphore) != VK_SUCCESS ||
-        vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_renderFinishedSemaphore) != VK_SUCCESS ||
-        vkCreateFence(m_device, &fenceCreateInfo, nullptr, &m_inFlightFence))
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        throw std::runtime_error("failed to create semaphore and fence!");
+        if (vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(m_device, &fenceCreateInfo, nullptr, &m_inFlightFences[i]))
+        {
+            throw std::runtime_error("failed to create semaphore and fence!");
+        }
     }
+}
+
+void HelloTriangleApplication::recreateSwapChain()
+{
+    // 如果窗口最小化
+    int width, height;
+    glfwGetFramebufferSize(m_window, &width, &height);
+    while (width == 0 || height == 0)
+    {
+        glfwGetFramebufferSize(m_window, &width, &height);
+        glfwWaitEvents();
+    }
+
+    vkDeviceWaitIdle(m_device);
+
+    cleanupSwapChain();
+
+    createSwapChain();
+    createImageViews();
+    createFramebuffers();
+}
+
+void HelloTriangleApplication::cleanupSwapChain()
+{
+    for (auto &m_swapChainFramebuffer: m_swapChainFramebuffers)
+    {
+        vkDestroyFramebuffer(m_device, m_swapChainFramebuffer, nullptr);
+    }
+
+    for (auto &m_swapChainImageView: m_swapChainImageViews)
+    {
+        vkDestroyImageView(m_device, m_swapChainImageView, nullptr);
+    }
+
+    vkDestroySwapchainKHR(m_device, m_swapChain, nullptr);
 }
 
 void HelloTriangleApplication::drawFrame()
 {
     // 等待上一帧渲染完成
-    vkWaitForFences(m_device, 1, &m_inFlightFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(m_device, 1, &m_inFlightFence);
+    vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
     // 获取图像在交换链中的索引，并触发信号量
     unsigned int imageIndex;
-    vkAcquireNextImageKHR(m_device, m_swapChain, UINT64_MAX, m_imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+    auto result = vkAcquireNextImageKHR(m_device, m_swapChain, UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame],
+                                        VK_NULL_HANDLE,
+                                        &imageIndex);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        recreateSwapChain();
+        return;
+    } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    {
+        throw std::runtime_error("failed to acquire swap chain image!");
+    }
+
+    // 只有绘制时才会重置fence
+    vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
 
     // 记录命令缓冲
-    vkResetCommandBuffer(m_commandBuffer, 0);
-    recordCommandBuffer(m_commandBuffer, imageIndex);
+    vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
+    recordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
 
-    VkSemaphore waitSemaphore[] = { m_imageAvailableSemaphore };
+    VkSemaphore waitSemaphore[] = { m_imageAvailableSemaphores[m_currentFrame] };
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-    VkSemaphore signalSemaphore[] = { m_renderFinishedSemaphore };
+    VkSemaphore signalSemaphore[] = { m_renderFinishedSemaphores[m_currentFrame] };
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1025,12 +1089,12 @@ void HelloTriangleApplication::drawFrame()
     submitInfo.pWaitSemaphores = waitSemaphore;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_commandBuffer;
+    submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
     // 触发信号量
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphore;
 
-    if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFence) != VK_SUCCESS)
+    if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to submit draw command buffer");
     }
@@ -1046,5 +1110,16 @@ void HelloTriangleApplication::drawFrame()
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
 
-    vkQueuePresentKHR(m_presentQueue, &presentInfo);
+    result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_framebufferResized)
+    {
+        m_framebufferResized = false;
+        recreateSwapChain();
+    } else if (result != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to present swap chain image!");
+    }
+
+    m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
