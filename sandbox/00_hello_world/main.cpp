@@ -1,7 +1,20 @@
-#include "project/hello_world.h"
+#include <stdexcept>
+#include <iostream>
+#include "comet/hello_world.h"
 
 int main()
 {
-    project::hello_world();
-    return 0;
+    HelloTriangleApplication app;
+
+    try
+    {
+        app.run();
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
