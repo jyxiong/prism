@@ -1,4 +1,4 @@
-#include "comet/application.h"
+#include "comet/core/application.h"
 
 using namespace comet;
 

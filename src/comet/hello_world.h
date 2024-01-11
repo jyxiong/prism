@@ -6,9 +6,9 @@
 #include <memory>
 
 #include "vulkan/vulkan.h"
-#include "GLFW/glfw3.h"
 
-#include "comet/application.h"
+#include "comet/core/application.h"
+#include "comet/core/window.h"
 #include "comet/vulkan/instance.h"
 
 namespace comet
@@ -20,6 +20,8 @@ namespace comet
     {
     public:
         HelloTriangle(const std::string &name);
+
+        ~HelloTriangle() override = default;
 
         void run();
 
@@ -35,7 +37,7 @@ namespace comet
         void createInstance();
 
     private:
-        GLFWwindow *m_window;
+        std::unique_ptr<Window> m_window{nullptr};
         std::unique_ptr<Instance> m_instance{nullptr};
     };
 

@@ -1,5 +1,7 @@
 #include "comet/hello_world.h"
 
+#include "comet/platform/window/glfw_window.h"
+
 using namespace comet;
 
 HelloTriangle::HelloTriangle(const std::string &name)
@@ -12,19 +14,22 @@ void HelloTriangle::run()
     initWindow();
     initVulkan();
     mainLoop();
-    cleanup();
 }
 
 void HelloTriangle::initWindow()
 {
-    glfwInit();
+    Window::Properties properties;
+    properties.title = this->get_name();
+    properties.resizable = false;
 
-    // 不允许OpenGL
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    // 不允许调整窗口大小
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-    m_window = glfwCreateWindow(WIDTH, HEIGHT, get_name().c_str(), nullptr, nullptr);
+	if (properties.mode == Window::Mode::Headless)
+	{
+        // TODO
+	}
+	else
+	{
+		m_window = std::make_unique<GlfwWindow>(properties);
+	}
 }
 
 void HelloTriangle::initVulkan()
@@ -34,28 +39,24 @@ void HelloTriangle::initVulkan()
 
 void HelloTriangle::mainLoop()
 {
-    while (!glfwWindowShouldClose(m_window))
+    while (!m_window->should_close())
     {
-        glfwPollEvents();
+        m_window->process_events();
     }
 }
 
 void HelloTriangle::cleanup()
 {
-    glfwDestroyWindow(m_window);
-
-    glfwTerminate();
 }
 
 void HelloTriangle::createInstance()
 {
     // 指定需要的全局扩展
-    std::vector<const char*> extensions;
+    std::vector<const char *> extensions;
 
     // glfw需要的扩展
-    uint32_t glfw_ext_count = 0;
-    const char **glfw_extensions = glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_ext_count);
-    extensions.insert(extensions.end(), glfw_extensions, glfw_extensions + glfw_ext_count);
+    auto glfw_extensions = m_window->get_required_surface_extensions();
+    extensions.insert(extensions.end(), glfw_extensions.begin(), glfw_extensions.end());
 
     m_instance = std::make_unique<Instance>(this->get_name(), extensions);
 }
