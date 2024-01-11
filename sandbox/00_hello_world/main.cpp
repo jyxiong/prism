@@ -2,9 +2,11 @@
 #include <iostream>
 #include "comet/hello_world.h"
 
+using namespace comet;
+
 int main()
 {
-    HelloTriangleApplication app;
+    HelloTriangle app("Hello Triangle");
 
     try
     {

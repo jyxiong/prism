@@ -1,5 +1,5 @@
-file(GLOB SOURCES comet/*.cpp)
-file(GLOB HEADERS comet/*.h)
+file(GLOB_RECURSE SOURCES comet/*.cpp)
+file(GLOB_RECURSE HEADERS comet/*.h)
 
 add_library(comet STATIC ${SOURCES} ${HEADERS})
 
