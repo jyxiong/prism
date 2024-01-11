@@ -70,8 +70,7 @@ function(add_chapter CHAPTER_NAME)
 
 endfunction()
 
-add_chapter(02_validation_layers)
-# add_chapter(03_physical_device_selection)
+add_chapter(03_physical_device_selection)
 # add_chapter(04_logical_device)
 # add_chapter(05_window_surface)
 # add_chapter(06_swap_chain_creation)

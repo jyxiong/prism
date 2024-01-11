@@ -95,6 +95,8 @@ Instance::Instance(const std::string &app_name, const std::vector<const char *> 
             throw std::runtime_error("failed to set up debug messenger!");
         }
     }
+
+    enumerate_physical_device();
 }
 
 Instance::~Instance()
@@ -107,6 +109,33 @@ Instance::~Instance()
 
     // 销毁实例
     vkDestroyInstance(m_handle, nullptr);
+}
+
+VkInstance Instance::getHandle() const
+{
+    return m_handle;
+}
+
+const std::vector<std::shared_ptr<PhysicalDevice>> &Instance::get_physical_devices() const
+{
+    return m_physical_devices;
+}
+
+void Instance::enumerate_physical_device()
+{
+    // 获取所有可用的物理设备数量
+    unsigned int device_count = 0;
+    vkEnumeratePhysicalDevices(m_handle, &device_count, nullptr);
+
+    // 获取所有可用的物理设备
+    std::vector<VkPhysicalDevice> devices(device_count);
+    vkEnumeratePhysicalDevices(m_handle, &device_count, devices.data());
+
+    // 创建物理设备对象
+    for (const auto &device : devices)
+    {
+        m_physical_devices.push_back(std::make_shared<PhysicalDevice>(device));
+    }
 }
 
 VkResult create_debug_utils_messenger_ext(
