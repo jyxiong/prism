@@ -22,7 +22,7 @@ namespace comet
 
         void close() override;
 
-        std::vector<const char *> get_required_surface_extensions() const override;
+        std::vector<const char *> get_required_extensions() const override;
 
     private:
         GLFWwindow *m_handle{nullptr};

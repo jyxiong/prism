@@ -50,7 +50,7 @@ namespace comet
 
         virtual void close() = 0;
 
-        virtual std::vector<const char *> get_required_surface_extensions() const = 0;
+        virtual std::vector<const char *> get_required_extensions() const = 0;
 
         Extent resize(const Extent &extent);
 

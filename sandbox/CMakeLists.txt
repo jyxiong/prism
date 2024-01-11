@@ -70,8 +70,6 @@ function(add_chapter CHAPTER_NAME)
 
 endfunction()
 
-add_chapter(00_base_code)
-add_chapter(01_instance_creation)
 add_chapter(02_validation_layers)
 # add_chapter(03_physical_device_selection)
 # add_chapter(04_logical_device)
@@ -90,4 +88,4 @@ add_chapter(02_validation_layers)
 # add_chapter(17_swap_chain_recreation SHADER 17_shader_base)
 # add_chapter(18_shader_input SHADER 18_shader_vertex_buffer)
 
-add_chapter(99_final)
+# add_chapter(99_final)

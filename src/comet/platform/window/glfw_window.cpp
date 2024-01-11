@@ -42,7 +42,7 @@ void GlfwWindow::close()
     glfwSetWindowShouldClose(m_handle, GLFW_TRUE);
 }
 
-std::vector<const char *> GlfwWindow::get_required_surface_extensions() const
+std::vector<const char *> GlfwWindow::get_required_extensions() const
 {
     uint32_t glfw_extension_count{0};
     const char **names = glfwGetRequiredInstanceExtensions(&glfw_extension_count);

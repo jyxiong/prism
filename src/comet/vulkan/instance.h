@@ -10,7 +10,7 @@ namespace comet
     class Instance
     {
     public:
-        Instance(const std::string &app_name, const std::vector<const char*> &extensions);
+        Instance(const std::string &app_name, const std::vector<const char *> &extensions, const std::vector<const char *> &validation_layers);
         Instance(const Instance &) = delete;
 
         Instance(Instance &&) = delete;
@@ -25,5 +25,7 @@ namespace comet
 
     private:
         VkInstance m_handle;
+
+        VkDebugUtilsMessengerEXT m_debug_utils_messenger;
     };
 } // namespace comet

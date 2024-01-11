@@ -3,8 +3,10 @@
 #include <functional>
 #include <vector>
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <memory>
+
+#include "comet/platform/window/glfw_window.h"
+#include "comet/vulkan/instance.h"
 
 /**
  * 创建debug messenger
@@ -35,8 +37,8 @@ void DestroyDebugUtilsMessengerEXT(
 class HelloTriangleApplication
 {
 private:
-    GLFWwindow *m_window;
-    VkInstance m_instance;
+    std::unique_ptr<comet::Window> m_window;
+    std::unique_ptr<comet::Instance> m_instance;
     VkDebugUtilsMessengerEXT m_debugMessenger;
 
 public:
@@ -53,20 +55,7 @@ private:
 
     void createInstance();
 
-    bool checkValidationLayerSupport();
-
     std::vector<const char *> getRequiredExtensions();
-
-    /**
-     *
-     * @param createInfo
-     */
-    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
-
-    /**
-     * 创建debug messenger
-     */
-    void setupDebugMessenger();
 
     /**
      * debug messenger callback function
