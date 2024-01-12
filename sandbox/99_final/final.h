@@ -3,42 +3,33 @@
 #include <stdexcept>
 #include <iostream>
 #include <functional>
+#include <vector>
+#include <optional>
+
 #include <memory>
 
-#include "vulkan/vulkan.h"
-
-#include "comet/core/application.h"
-#include "comet/core/window.h"
+#include "comet/platform/window/glfw_window.h"
 #include "comet/vulkan/instance.h"
+#include "comet/vulkan/physical_device.h"
+#include "comet/vulkan/device.h"
 
-namespace comet
+class HelloTriangleApplication
 {
-    const unsigned int WIDTH = 800;
-    const unsigned int HEIGHT = 600;
+private:
+    std::unique_ptr<comet::Window> m_window;
+    std::unique_ptr<comet::Instance> m_instance;
+    std::unique_ptr<comet::Device> m_device;
+public:
+    void run();
 
-    class HelloTriangle : public Application
-    {
-    public:
-        HelloTriangle(const std::string &name);
+private:
+    void initWindow();
 
-        ~HelloTriangle() override = default;
+    void initVulkan();
 
-        void run();
+    void mainLoop();
 
-    private:
-        void initWindow();
+    void cleanup();
 
-        void initVulkan();
-
-        void mainLoop();
-
-        void cleanup();
-
-        void createInstance();
-
-    private:
-        std::unique_ptr<Window> m_window{nullptr};
-        std::unique_ptr<Instance> m_instance{nullptr};
-    };
-
-}
+    std::vector<const char *> getRequiredExtensions();
+};

@@ -4,8 +4,8 @@
 
 using namespace comet;
 
-Device::Device(PhysicalDevice physical_device)
-    : m_physical_device(physical_device)
+Device::Device(PhysicalDevice physical_device, VkSurfaceKHR surface)
+    : m_physical_device(physical_device), m_surface(surface)
 {
     auto queue_family_properties_count = physical_device.get_queue_family_properties().size();
 

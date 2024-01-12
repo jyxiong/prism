@@ -1,22 +1,17 @@
-#include <stdexcept>
-#include <iostream>
 #include "final.h"
-
-using namespace comet;
 
 int main()
 {
-    HelloTriangle app("Hello Triangle");
+    HelloTriangleApplication app{};
 
     try
     {
         app.run();
-    }
-    catch (const std::exception &e)
+    } catch (const std::exception& e)
     {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;
-}
+};

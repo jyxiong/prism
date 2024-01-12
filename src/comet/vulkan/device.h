@@ -24,7 +24,7 @@ namespace comet
     class Device
     {
     public:
-        Device(PhysicalDevice physical_device);
+        Device(PhysicalDevice physical_device, VkSurfaceKHR surface);
         ~Device();
 
         VkDevice get_handle() const;
@@ -37,9 +37,12 @@ namespace comet
     private:
         const PhysicalDevice &m_physical_device;
 
+        VkSurfaceKHR m_surface;
+
         VkDevice m_handle;
 
         std::unique_ptr<Queue> m_graphics_queue;
+        std::unique_ptr<Queue> m_present_queue;
 
         // std::vector<std::vector<Queue>> m_queues;
     };

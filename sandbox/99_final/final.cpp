@@ -1,43 +1,61 @@
+#include <stdexcept>
+#include <iostream>
+#include <vector>
+
 #include "final.h"
 
-#include "comet/platform/window/glfw_window.h"
+const unsigned int WIDTH = 800;
+const unsigned int HEIGHT = 600;
 
-using namespace comet;
+// 指定校验层
+const std::vector<const char *> validationLayers = {
+        "VK_LAYER_KHRONOS_validation"
+};
 
-HelloTriangle::HelloTriangle(const std::string &name)
-    : Application(name)
-{
-}
+// 是否启用校验层
+#ifdef NDEBUG
+const bool enableValidationLayers = false;
+#else
+const bool enableValidationLayers = true;
+#endif
 
-void HelloTriangle::run()
+void HelloTriangleApplication::run()
 {
     initWindow();
+
     initVulkan();
+
     mainLoop();
+
+    cleanup();
 }
 
-void HelloTriangle::initWindow()
+void HelloTriangleApplication::initWindow()
 {
-    Window::Properties properties;
-    properties.title = this->get_name();
+    comet::Window::Properties properties;
+    properties.extent = {WIDTH, HEIGHT};
+    properties.title = "04_logical_device";
     properties.resizable = false;
-
-	if (properties.mode == Window::Mode::Headless)
-	{
-        // TODO
-	}
-	else
-	{
-		m_window = std::make_unique<GlfwWindow>(properties);
-	}
+    m_window = std::make_unique<comet::GlfwWindow>(properties);
 }
 
-void HelloTriangle::initVulkan()
+void HelloTriangleApplication::initVulkan()
 {
-    createInstance();
+    // 创建instance
+    m_instance = std::make_unique<comet::Instance>("02_validation_layers", getRequiredExtensions(), validationLayers);
+
+    // 选择physical device
+    auto physical_device = m_instance->get_suitable_gpu(nullptr);
+
+    // 创建surface
+    auto surface = m_window->create_surface(m_instance->get_handle(), physical_device.get_handle());
+
+    // 创建logical device
+    m_device = std::make_unique<comet::Device>(physical_device, surface);
+
 }
 
-void HelloTriangle::mainLoop()
+void HelloTriangleApplication::mainLoop()
 {
     while (!m_window->should_close())
     {
@@ -45,18 +63,24 @@ void HelloTriangle::mainLoop()
     }
 }
 
-void HelloTriangle::cleanup()
+void HelloTriangleApplication::cleanup()
 {
 }
 
-void HelloTriangle::createInstance()
+std::vector<const char *> HelloTriangleApplication::getRequiredExtensions()
 {
-    // 指定需要的全局扩展
-    std::vector<const char *> extensions;
+    // 获取glfw需要的扩展
+    unsigned int glfwExtensionCount = 0;
+    const char **glfwExtensions;
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    // glfw需要的扩展
-    auto glfw_extensions = m_window->get_required_surface_extensions();
-    extensions.insert(extensions.end(), glfw_extensions.begin(), glfw_extensions.end());
+    std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-    m_instance = std::make_unique<Instance>(this->get_name(), extensions);
+    // debug需要的扩展
+    if (enableValidationLayers)
+    {
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+
+    return extensions;
 }
