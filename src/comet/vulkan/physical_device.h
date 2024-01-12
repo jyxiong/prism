@@ -12,6 +12,8 @@ namespace comet
 
         ~PhysicalDevice() = default;
 
+        VkPhysicalDevice get_handle() const;
+
         const VkPhysicalDeviceFeatures& get_features() const;
 
         const VkPhysicalDeviceProperties& get_properties() const;
@@ -20,8 +22,10 @@ namespace comet
 
         const std::vector<VkQueueFamilyProperties>& get_queue_family_properties() const;
 
+        VkBool32 is_present_supported(VkSurfaceKHR surface, uint32_t queue_family_index) const;
+
     private:
-        VkPhysicalDevice m_physicalDevice{VK_NULL_HANDLE};
+        VkPhysicalDevice m_handle{VK_NULL_HANDLE};
 
         // The features that this GPU supports
         VkPhysicalDeviceFeatures m_features{};

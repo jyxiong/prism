@@ -24,12 +24,14 @@ namespace comet
 
         Instance &operator=(Instance &&) = delete;
 
-        VkInstance getHandle() const;
+        VkInstance get_handle() const;
 
         const std::vector<std::shared_ptr<PhysicalDevice>> &get_physical_devices() const;
 
+        PhysicalDevice &get_suitable_gpu(VkSurfaceKHR);
+
     private:
-        void enumerate_physical_device();
+        void query_physical_devices();
 
     private:
         VkInstance m_handle;

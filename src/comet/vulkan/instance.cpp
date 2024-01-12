@@ -89,14 +89,14 @@ Instance::Instance(const std::string &app_name, const std::vector<const char *> 
         // 配置debug messenger的信息
         VkDebugUtilsMessengerCreateInfoEXT create_info{};
         populate_debug_messenger_create_info(create_info);
-        
-        if(create_debug_utils_messenger_ext(m_handle, &create_info, nullptr, &m_debug_utils_messenger))
+
+        if (create_debug_utils_messenger_ext(m_handle, &create_info, nullptr, &m_debug_utils_messenger))
         {
             throw std::runtime_error("failed to set up debug messenger!");
         }
     }
 
-    enumerate_physical_device();
+    query_physical_devices();
 }
 
 Instance::~Instance()
@@ -111,7 +111,7 @@ Instance::~Instance()
     vkDestroyInstance(m_handle, nullptr);
 }
 
-VkInstance Instance::getHandle() const
+VkInstance Instance::get_handle() const
 {
     return m_handle;
 }
@@ -121,7 +121,26 @@ const std::vector<std::shared_ptr<PhysicalDevice>> &Instance::get_physical_devic
     return m_physical_devices;
 }
 
-void Instance::enumerate_physical_device()
+PhysicalDevice &Instance::get_suitable_gpu(VkSurfaceKHR surface)
+{
+    if (m_physical_devices.empty())
+        throw std::runtime_error("failed to find a suitable GPU!");
+
+    // 选择独显
+    for (const auto &physical_device : m_physical_devices)
+    {
+        if (physical_device->get_properties().deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        {
+            // TODO: 检查独显是否支持窗口系统表面
+            // 如果是headless模式，surface是nullptr
+            return *physical_device;
+        }
+    }
+
+    throw std::runtime_error("failed to find a suitable GPU!");
+}
+
+void Instance::query_physical_devices()
 {
     // 获取所有可用的物理设备数量
     unsigned int device_count = 0;
