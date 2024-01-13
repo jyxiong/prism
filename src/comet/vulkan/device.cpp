@@ -1,10 +1,13 @@
 #include "comet/vulkan/device.h"
 
+#include <iostream>
 #include <stdexcept>
+#include <algorithm>
+#include <cstring>
 
 using namespace comet;
 
-Device::Device(PhysicalDevice physical_device, VkSurfaceKHR surface)
+Device::Device(PhysicalDevice physical_device, VkSurfaceKHR surface, const std::vector<const char *> &required_extensions)
     : m_physical_device(physical_device), m_surface(surface)
 {
     auto queue_family_properties_count = physical_device.get_queue_family_properties().size();
@@ -17,6 +20,30 @@ Device::Device(PhysicalDevice physical_device, VkSurfaceKHR surface)
     float queue_priority = 1.0f;
     queue_create_info.pQueuePriorities = &queue_priority;
 
+    // 获取设备支持的扩展
+    uint32_t extension_count = 0;
+    vkEnumerateDeviceExtensionProperties(physical_device.get_handle(), nullptr, &extension_count, nullptr);
+    m_available_extensions.resize(extension_count);
+    vkEnumerateDeviceExtensionProperties(physical_device.get_handle(), nullptr, &extension_count, m_available_extensions.data());
+    if (extension_count > 0)
+    {
+        for (const auto &extension : m_available_extensions)
+        {
+            std::cout << "Device extension: " << extension.extensionName << std::endl;
+        }
+    }
+
+    // 确认必须的扩展是否支持
+    for (const auto &requested_extension : required_extensions)
+    {
+        if (!is_extension_supported(requested_extension))
+        {
+            throw std::runtime_error("required extension is not supported!");
+        }
+        m_enabled_extensions.push_back(requested_extension);
+    }
+
+    // 创建设备
     VkDeviceCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     // 添加队列信息
@@ -84,4 +111,17 @@ QueueFamilyIndices Device::find_queue_family()
     }
 
     return indices;
+}
+
+bool Device::is_extension_supported(const std::string& extension_name) const
+{
+    return std::find_if(m_available_extensions.begin(), m_available_extensions.end(), [&extension_name](const VkExtensionProperties& extension) {
+        return extension.extensionName == extension_name;
+    }) != m_available_extensions.end();
+}
+
+bool Device::is_extension_enabled(const char *extension_name) const
+{
+    return std::find_if(m_enabled_extensions.begin(), m_enabled_extensions.end(), [extension_name](const char *enabled_extension)
+                        { return std::strcmp(extension_name, enabled_extension) == 0; }) != m_enabled_extensions.end();
 }

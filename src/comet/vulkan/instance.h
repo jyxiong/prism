@@ -13,7 +13,7 @@ namespace comet
     class Instance
     {
     public:
-        Instance(const std::string &app_name, const std::vector<const char *> &extensions, const std::vector<const char *> &validation_layers);
+        Instance(const std::string &app_name, const std::vector<const char *> &required_extensions, const std::vector<const char *> &required_layers);
         Instance(const Instance &) = delete;
 
         Instance(Instance &&) = delete;
@@ -28,7 +28,9 @@ namespace comet
 
         const std::vector<std::shared_ptr<PhysicalDevice>> &get_physical_devices() const;
 
-        PhysicalDevice &get_suitable_gpu(VkSurfaceKHR);
+        PhysicalDevice &get_suitable_physical_device(VkSurfaceKHR);
+
+        bool is_extension_enabled(const char *extension_name) const;
 
     private:
         void query_physical_devices();
@@ -39,5 +41,7 @@ namespace comet
         VkDebugUtilsMessengerEXT m_debug_utils_messenger;
 
         std::vector<std::shared_ptr<PhysicalDevice>> m_physical_devices;
+
+        std::vector<const char *> m_enabled_extensions;
     };
 } // namespace comet

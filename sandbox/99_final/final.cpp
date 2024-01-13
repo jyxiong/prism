@@ -45,7 +45,7 @@ void HelloTriangleApplication::initVulkan()
     m_instance = std::make_unique<comet::Instance>("02_validation_layers", getRequiredExtensions(), validationLayers);
 
     // 选择physical device
-    auto physical_device = m_instance->get_suitable_gpu(nullptr);
+    auto physical_device = m_instance->get_suitable_physical_device(nullptr);
 
     // 创建surface
     auto surface = m_window->create_surface(m_instance->get_handle(), physical_device.get_handle());

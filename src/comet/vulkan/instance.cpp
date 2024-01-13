@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstring>
 #include <stdexcept>
+#include <algorithm>
 
 using namespace comet;
 
@@ -23,7 +24,9 @@ void destroy_debug_utils_messenger_ext(
     VkDebugUtilsMessengerEXT debug_messenger,
     const VkAllocationCallbacks *p_allocator);
 
-bool check_validation_layer_support(const std::vector<const char *> &validation_layers);
+bool is_extension_support(const char *required_extensions, const std::vector<VkExtensionProperties> &available_extensions);
+
+bool is_layer_support(const char * required_layer, const std::vector<VkLayerProperties> &available_layers);
 
 void populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT &create_info);
 
@@ -33,15 +36,46 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     const VkDebugUtilsMessengerCallbackDataEXT *p_callback_data,
     void *p_user_data);
 
-Instance::Instance(const std::string &app_name, const std::vector<const char *> &extensions, const std::vector<const char *> &validation_layers)
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Instance::Instance(const std::string &app_name, const std::vector<const char *> &required_extensions, const std::vector<const char *> &required_layers)
 {
-    // 检查是否启用校验层
+    // 获取所有可用的实例扩展数量
+    unsigned int extension_count;
+    vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
+    // 获取所有可用的实例扩展
+    std::vector<VkExtensionProperties> available_extensions(extension_count);
+    vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, available_extensions.data());
+
+    // 检查是否支持指定的扩展
+    for (const auto &required_extension : required_extensions)
+    {
+        if (!is_extension_support(required_extension, available_extensions))
+        {
+            throw std::runtime_error("required extension is not supported!");
+        }
+        else
+        {
+            m_enabled_extensions.emplace_back(required_extension);
+        }
+    }
+
+    // 获取所有可用的实例校验层数量
+    unsigned int layer_count;
+    vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+    // 获取所有可用的实例校验层
+    std::vector<VkLayerProperties> available_layers(layer_count);
+    vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
+
+    // 检查是否支持指定的校验层
     if (enable_validation_layers)
     {
-        // 检查校验层是否支持
-        if (!check_validation_layer_support(validation_layers))
+        for (const auto &required_layer : required_layers)
         {
-            throw std::runtime_error("validation layers requested, but not available!");
+            if (!is_layer_support(required_layer, available_layers))
+            {
+                throw std::runtime_error("required validation layer is not supported!");
+            }
         }
     }
 
@@ -59,14 +93,14 @@ Instance::Instance(const std::string &app_name, const std::vector<const char *> 
     create_info.pApplicationInfo = &appInfo;
 
     // 设置扩展
-    create_info.enabledExtensionCount = extensions.size();
-    create_info.ppEnabledExtensionNames = extensions.data();
+    create_info.enabledExtensionCount = required_extensions.size();
+    create_info.ppEnabledExtensionNames = required_extensions.data();
 
-    // 设置验证层
+    // 设置校验层
     if (enable_validation_layers)
     {
-        create_info.enabledLayerCount = validation_layers.size();
-        create_info.ppEnabledLayerNames = validation_layers.data();
+        create_info.enabledLayerCount = required_layers.size();
+        create_info.ppEnabledLayerNames = required_layers.data();
 
         // 使用pNext创建单独的debug messenger，记录vkCreateInstance和vkDestroyInstance两个函数的调试信息
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
@@ -121,7 +155,7 @@ const std::vector<std::shared_ptr<PhysicalDevice>> &Instance::get_physical_devic
     return m_physical_devices;
 }
 
-PhysicalDevice &Instance::get_suitable_gpu(VkSurfaceKHR surface)
+PhysicalDevice &Instance::get_suitable_physical_device(VkSurfaceKHR surface)
 {
     if (m_physical_devices.empty())
         throw std::runtime_error("failed to find a suitable GPU!");
@@ -140,6 +174,12 @@ PhysicalDevice &Instance::get_suitable_gpu(VkSurfaceKHR surface)
     throw std::runtime_error("failed to find a suitable GPU!");
 }
 
+bool Instance::is_extension_enabled(const char *extension_name) const
+{
+    return std::find_if(m_enabled_extensions.begin(), m_enabled_extensions.end(), [extension_name](const char *enabled_extension)
+                        { return std::strcmp(extension_name, enabled_extension) == 0; }) != m_enabled_extensions.end();
+}
+
 void Instance::query_physical_devices()
 {
     // 获取所有可用的物理设备数量
@@ -156,6 +196,8 @@ void Instance::query_physical_devices()
         m_physical_devices.push_back(std::make_shared<PhysicalDevice>(device));
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 VkResult create_debug_utils_messenger_ext(
     VkInstance instance,
@@ -188,36 +230,18 @@ void destroy_debug_utils_messenger_ext(
     }
 }
 
-bool check_validation_layer_support(const std::vector<const char *> &validation_layers)
+bool is_extension_support(const char *required_extension, const std::vector<VkExtensionProperties> &available_extensions)
 {
-    // 获取所有可用的实例校验层数量
-    unsigned int layer_count;
-    vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+    // 检查指定的扩展是否包含在可用扩展中
+    return std::find_if(available_extensions.begin(), available_extensions.end(), [required_extension](const VkExtensionProperties &extension)
+                        { return std::strcmp(extension.extensionName, required_extension) == 0; }) != available_extensions.end();
+}
 
-    // 获取所有可用的实例校验层
-    std::vector<VkLayerProperties> available_layers(layer_count);
-    vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
-
+bool is_layer_support(const char *required_layer, const std::vector<VkLayerProperties> &available_layers)
+{
     // 检查指定的校验层是否包含在可用校验层中
-    for (const char *layer_name : validation_layers)
-    {
-        bool found_layer = false;
-        for (const auto &layer_properties : available_layers)
-        {
-            if (std::strcmp(layer_name, layer_properties.layerName) == 0)
-            {
-                found_layer = true;
-                break;
-            }
-        }
-
-        if (!found_layer)
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return std::find_if(available_layers.begin(), available_layers.end(), [required_layer](const VkLayerProperties &layer)
+                        { return std::strcmp(layer.layerName, required_layer) == 0; }) != available_layers.end();
 }
 
 void populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT &create_info)

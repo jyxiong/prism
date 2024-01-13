@@ -24,7 +24,7 @@ namespace comet
     class Device
     {
     public:
-        Device(PhysicalDevice physical_device, VkSurfaceKHR surface);
+        Device(PhysicalDevice physical_device, VkSurfaceKHR surface, const std::vector<const char *> & required__extensions = {});
         ~Device();
 
         VkDevice get_handle() const;
@@ -34,12 +34,19 @@ namespace comet
 
         QueueFamilyIndices find_queue_family();
 
+        bool is_extension_supported(const std::string& extension_name) const;
+
+        bool is_extension_enabled(const char *extension_name) const;
+
     private:
         const PhysicalDevice &m_physical_device;
 
         VkSurfaceKHR m_surface;
 
         VkDevice m_handle;
+
+        std::vector<VkExtensionProperties> m_available_extensions;
+        std::vector<const char*> m_enabled_extensions;
 
         std::unique_ptr<Queue> m_graphics_queue;
         std::unique_ptr<Queue> m_present_queue;
