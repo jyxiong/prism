@@ -7,10 +7,10 @@
 
 using namespace comet;
 
-Device::Device(PhysicalDevice physical_device, VkSurfaceKHR surface, const std::vector<const char *> &required_extensions)
+Device::Device(const PhysicalDevice &physical_device, VkSurfaceKHR surface, const std::vector<const char *> &required_extensions)
     : m_physical_device(physical_device), m_surface(surface)
 {
-    auto queue_family_properties_count = physical_device.get_queue_family_properties().size();
+    auto queue_family_properties_count = m_physical_device.get_queue_family_properties().size();
 
     // 指定队列族
     VkDeviceQueueCreateInfo queue_create_info{};
@@ -22,9 +22,9 @@ Device::Device(PhysicalDevice physical_device, VkSurfaceKHR surface, const std::
 
     // 获取设备支持的扩展
     uint32_t extension_count = 0;
-    vkEnumerateDeviceExtensionProperties(physical_device.get_handle(), nullptr, &extension_count, nullptr);
+    vkEnumerateDeviceExtensionProperties(m_physical_device.get_handle(), nullptr, &extension_count, nullptr);
     m_available_extensions.resize(extension_count);
-    vkEnumerateDeviceExtensionProperties(physical_device.get_handle(), nullptr, &extension_count, m_available_extensions.data());
+    vkEnumerateDeviceExtensionProperties(m_physical_device.get_handle(), nullptr, &extension_count, m_available_extensions.data());
     if (extension_count > 0)
     {
         for (const auto &extension : m_available_extensions)
@@ -34,13 +34,13 @@ Device::Device(PhysicalDevice physical_device, VkSurfaceKHR surface, const std::
     }
 
     // 确认必须的扩展是否支持
-    for (const auto &requested_extension : required_extensions)
+    for (const auto &required_extension : required_extensions)
     {
-        if (!is_extension_supported(requested_extension))
+        if (!is_extension_supported(required_extension))
         {
             throw std::runtime_error("required extension is not supported!");
         }
-        m_enabled_extensions.push_back(requested_extension);
+        m_enabled_extensions.push_back(required_extension);
     }
 
     // 创建设备
@@ -53,22 +53,24 @@ Device::Device(PhysicalDevice physical_device, VkSurfaceKHR surface, const std::
     VkPhysicalDeviceFeatures device_features{};
     create_info.pEnabledFeatures = &device_features;
     // 校验层
-    create_info.enabledExtensionCount = 0;
     create_info.enabledLayerCount = 0;
+    // 扩展
+    create_info.enabledExtensionCount = static_cast<uint32_t>(m_enabled_extensions.size());
+    create_info.ppEnabledExtensionNames = m_enabled_extensions.data();
 
-    if (vkCreateDevice(physical_device.get_handle(), &create_info, nullptr, &m_handle) != VK_SUCCESS)
+    if (vkCreateDevice(m_physical_device.get_handle(), &create_info, nullptr, &m_handle) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create logical device!");
     }
 
-    m_graphics_queue = std::make_unique<Queue>(*this, find_queue_family().graphicsFamily.value(), physical_device.get_queue_family_properties()[find_queue_family().graphicsFamily.value()], physical_device.is_present_supported(nullptr, find_queue_family().graphicsFamily.value()), 0);
+    m_graphics_queue = std::make_unique<Queue>(*this, find_queue_family().graphicsFamily.value(), m_physical_device.get_queue_family_properties()[find_queue_family().graphicsFamily.value()], m_physical_device.is_present_supported(nullptr, find_queue_family().graphicsFamily.value()), 0);
 
     // m_queues.resize(queue_family_properties_count);
     // for (uint32_t queue_family_index = 0; queue_family_index < queue_family_properties_count; ++queue_family_index)
     // {
-    //     const auto &queue_family_property = physical_device.get_queue_family_properties()[queue_family_index];
+    //     const auto &queue_family_property = m_physical_device.get_queue_family_properties()[queue_family_index];
 
-    //     auto support_present = physical_device.is_present_supported(nullptr, queue_family_index);
+    //     auto support_present = m_physical_device.is_present_supported(nullptr, queue_family_index);
     //     for (uint32_t queue_index = 0; queue_index < queue_family_property.queueCount; ++queue_index)
     //     {
     //         m_queues[queue_family_index].emplace_back(Queue{*this, queue_family_index, queue_family_property, support_present, queue_index});
@@ -84,6 +86,11 @@ Device::~Device()
 VkDevice Device::get_handle() const
 {
     return m_handle;
+}
+
+const PhysicalDevice &Device::get_physical_device() const
+{
+    return m_physical_device;
 }
 
 // void Device::add_queue(size_t global_index, uint32_t family_index, VkQueueFamilyProperties properties, VkBool32 can_present)

@@ -24,10 +24,12 @@ namespace comet
     class Device
     {
     public:
-        Device(PhysicalDevice physical_device, VkSurfaceKHR surface, const std::vector<const char *> & required__extensions = {});
+        Device(const PhysicalDevice &physical_device, VkSurfaceKHR surface, const std::vector<const char *> & required_extensions = {});
         ~Device();
 
         VkDevice get_handle() const;
+
+        const PhysicalDevice &get_physical_device() const;
 
         // void add_queue(size_t global_index, uint32_t family_index, VkQueueFamilyProperties properties, VkBool32 can_present);
         // VkQueue get_queue_by_flags(VkQueueFlagBits flags);

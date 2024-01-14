@@ -2,8 +2,8 @@
 
 using namespace comet;
 
-PhysicalDevice::PhysicalDevice(VkPhysicalDevice physicalDevice)
-    : m_handle(physicalDevice)
+PhysicalDevice::PhysicalDevice(VkPhysicalDevice physical_device)
+    : m_handle(physical_device)
 {
     // Get the features of the GPU
     vkGetPhysicalDeviceFeatures(m_handle, &m_features);
@@ -54,4 +54,11 @@ VkBool32 PhysicalDevice::is_present_supported(VkSurfaceKHR surface, uint32_t que
         vkGetPhysicalDeviceSurfaceSupportKHR(m_handle, queue_family_index, surface, &present_supported);
     }
     return present_supported;
+}
+
+VkFormatProperties PhysicalDevice::get_format_properties(VkFormat format) const
+{
+    VkFormatProperties format_properties;
+    vkGetPhysicalDeviceFormatProperties(m_handle, format, &format_properties);
+    return format_properties;
 }

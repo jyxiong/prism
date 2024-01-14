@@ -8,21 +8,31 @@ namespace comet
     class PhysicalDevice
     {
     public:
-        PhysicalDevice(VkPhysicalDevice physicalDevice);
+        PhysicalDevice(VkPhysicalDevice physical_device);
+
+        PhysicalDevice(const PhysicalDevice &) = delete;
+
+        PhysicalDevice(PhysicalDevice &&) = delete;
+
+        PhysicalDevice &operator=(const PhysicalDevice &) = delete;
+
+        PhysicalDevice &operator=(PhysicalDevice &&) = delete;
 
         ~PhysicalDevice() = default;
 
         VkPhysicalDevice get_handle() const;
 
-        const VkPhysicalDeviceFeatures& get_features() const;
+        const VkPhysicalDeviceFeatures &get_features() const;
 
-        const VkPhysicalDeviceProperties& get_properties() const;
+        const VkPhysicalDeviceProperties &get_properties() const;
 
-        const VkPhysicalDeviceMemoryProperties& get_memory_properties() const;
+        const VkPhysicalDeviceMemoryProperties &get_memory_properties() const;
 
-        const std::vector<VkQueueFamilyProperties>& get_queue_family_properties() const;
+        const std::vector<VkQueueFamilyProperties> &get_queue_family_properties() const;
 
         VkBool32 is_present_supported(VkSurfaceKHR surface, uint32_t queue_family_index) const;
+
+        VkFormatProperties get_format_properties(VkFormat format) const;
 
     private:
         VkPhysicalDevice m_handle{VK_NULL_HANDLE};

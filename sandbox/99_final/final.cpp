@@ -9,8 +9,7 @@ const unsigned int HEIGHT = 600;
 
 // 指定校验层
 const std::vector<const char *> validationLayers = {
-        "VK_LAYER_KHRONOS_validation"
-};
+    "VK_LAYER_KHRONOS_validation"};
 
 // 是否启用校验层
 #ifdef NDEBUG
@@ -18,6 +17,19 @@ const bool enableValidationLayers = false;
 #else
 const bool enableValidationLayers = true;
 #endif
+
+HelloTriangleApplication::~HelloTriangleApplication()
+{
+    m_swapchain.reset();
+
+    m_device.reset();
+
+    vkDestroySurfaceKHR(m_instance->get_handle(), m_surface, nullptr);
+
+    m_instance.reset();
+
+    m_window.reset();
+}
 
 void HelloTriangleApplication::run()
 {
@@ -42,17 +54,19 @@ void HelloTriangleApplication::initWindow()
 void HelloTriangleApplication::initVulkan()
 {
     // 创建instance
-    m_instance = std::make_unique<comet::Instance>("02_validation_layers", getRequiredExtensions(), validationLayers);
+    m_instance = std::make_unique<comet::Instance>("02_validation_layers", getRequiredInstanceExtensions(), validationLayers);
 
     // 选择physical device
-    auto physical_device = m_instance->get_suitable_physical_device(nullptr);
+    const auto &physical_device = m_instance->get_suitable_physical_device(nullptr);
 
     // 创建surface
-    auto surface = m_window->create_surface(m_instance->get_handle(), physical_device.get_handle());
+    m_surface = m_window->create_surface(m_instance->get_handle(), physical_device.get_handle());
 
     // 创建logical device
-    m_device = std::make_unique<comet::Device>(physical_device, surface);
+    m_device = std::make_unique<comet::Device>(physical_device, m_surface, getRequiredDeviceExtensions());
 
+    // 创建交换链
+    m_swapchain = std::make_unique<comet::Swapchain>(*m_device, m_surface);
 }
 
 void HelloTriangleApplication::mainLoop()
@@ -67,20 +81,31 @@ void HelloTriangleApplication::cleanup()
 {
 }
 
-std::vector<const char *> HelloTriangleApplication::getRequiredExtensions()
+std::vector<const char *> HelloTriangleApplication::getRequiredInstanceExtensions()
 {
+    std::vector<const char *> extensions;
+
     // 获取glfw需要的扩展
     unsigned int glfwExtensionCount = 0;
     const char **glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    extensions.insert(extensions.end(), glfwExtensions, glfwExtensions + glfwExtensionCount);
 
     // debug需要的扩展
     if (enableValidationLayers)
     {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
+
+    return extensions;
+}
+
+std::vector<const char *> HelloTriangleApplication::getRequiredDeviceExtensions()
+{
+    std::vector<const char *> extensions;
+
+    // swapchain需要的扩展
+    extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
     return extensions;
 }

@@ -12,15 +12,20 @@
 #include "comet/vulkan/instance.h"
 #include "comet/vulkan/physical_device.h"
 #include "comet/vulkan/device.h"
+#include "comet/vulkan/swapchain.h"
 
 class HelloTriangleApplication
 {
 private:
     std::unique_ptr<comet::Window> m_window;
+    VkSurfaceKHR m_surface;
     std::unique_ptr<comet::Instance> m_instance;
     std::unique_ptr<comet::Device> m_device;
+    std::unique_ptr<comet::Swapchain> m_swapchain;
 public:
     void run();
+
+    ~HelloTriangleApplication();
 
 private:
     void initWindow();
@@ -31,5 +36,7 @@ private:
 
     void cleanup();
 
-    std::vector<const char *> getRequiredExtensions();
+    std::vector<const char *> getRequiredInstanceExtensions();
+
+    std::vector<const char *> getRequiredDeviceExtensions();
 };

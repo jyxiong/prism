@@ -150,12 +150,12 @@ VkInstance Instance::get_handle() const
     return m_handle;
 }
 
-const std::vector<std::shared_ptr<PhysicalDevice>> &Instance::get_physical_devices() const
+const std::vector<std::unique_ptr<PhysicalDevice>> &Instance::get_physical_devices() const
 {
     return m_physical_devices;
 }
 
-PhysicalDevice &Instance::get_suitable_physical_device(VkSurfaceKHR surface)
+const PhysicalDevice &Instance::get_suitable_physical_device(VkSurfaceKHR surface)
 {
     if (m_physical_devices.empty())
         throw std::runtime_error("failed to find a suitable GPU!");
@@ -185,7 +185,6 @@ void Instance::query_physical_devices()
     // 获取所有可用的物理设备数量
     unsigned int device_count = 0;
     vkEnumeratePhysicalDevices(m_handle, &device_count, nullptr);
-
     // 获取所有可用的物理设备
     std::vector<VkPhysicalDevice> devices(device_count);
     vkEnumeratePhysicalDevices(m_handle, &device_count, devices.data());
@@ -193,7 +192,7 @@ void Instance::query_physical_devices()
     // 创建物理设备对象
     for (const auto &device : devices)
     {
-        m_physical_devices.push_back(std::make_shared<PhysicalDevice>(device));
+        m_physical_devices.push_back(std::make_unique<PhysicalDevice>(device));
     }
 }
 
