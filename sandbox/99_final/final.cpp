@@ -20,6 +20,8 @@ const bool enableValidationLayers = true;
 
 HelloTriangleApplication::~HelloTriangleApplication()
 {
+    m_image_views.clear();
+
     m_swapchain.reset();
 
     m_device.reset();
@@ -67,6 +69,20 @@ void HelloTriangleApplication::initVulkan()
 
     // 创建交换链
     m_swapchain = std::make_unique<comet::Swapchain>(*m_device, m_surface);
+
+    // 创建图像视图
+    auto& images = m_swapchain->get_images();
+    m_image_views.clear();
+    // m_image_views.resize(images.size());
+    for (size_t i = 0; i < images.size(); i++)
+    {
+        auto& swapchain_extend = m_swapchain->get_extent();
+
+		VkExtent3D extent{swapchain_extend.width, swapchain_extend.height, 1};
+
+        auto image = comet::Image{*m_device, images[i], extent, m_swapchain->get_format(), m_swapchain->get_usage()};
+        m_image_views.emplace_back(image, VK_IMAGE_VIEW_TYPE_2D, m_swapchain->get_format());
+    }
 }
 
 void HelloTriangleApplication::mainLoop()

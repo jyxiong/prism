@@ -62,7 +62,15 @@ namespace comet
 
 		~Swapchain();
 
-		VkSwapchainKHR get_handle() const { return m_handle; }
+		VkSwapchainKHR get_handle() const;
+
+		const std::vector<VkImage> &get_images() const;
+
+		VkFormat get_format() const;
+
+		const VkExtent2D &get_extent() const;
+
+		VkImageUsageFlags get_usage() const;
 
 	private:
 		Device &m_device;

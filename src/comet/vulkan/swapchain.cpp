@@ -128,6 +128,31 @@ Swapchain::~Swapchain()
     vkDestroySwapchainKHR(m_device.get_handle(), m_handle, nullptr);
 }
 
+VkSwapchainKHR Swapchain::get_handle() const
+{
+    return m_handle;
+}
+
+const std::vector<VkImage> &Swapchain::get_images() const
+{
+    return m_images;
+}
+
+VkFormat Swapchain::get_format() const
+{
+    return m_properties.surface_format.format;
+}
+
+const VkExtent2D &Swapchain::get_extent() const
+{
+    return m_properties.extent;
+}
+
+VkImageUsageFlags Swapchain::get_usage() const
+{
+    return m_properties.image_usage;
+}
+
 VkSurfaceFormatKHR choose_surface_format(VkSurfaceFormatKHR required, const std::vector<VkSurfaceFormatKHR> &available)
 {
     auto find_result = std::find_if(available.begin(), available.end(), [&](const VkSurfaceFormatKHR &available)

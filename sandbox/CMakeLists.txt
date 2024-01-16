@@ -70,8 +70,6 @@ function(add_chapter CHAPTER_NAME)
 
 endfunction()
 
-# add_chapter(06_swap_chain_creation)
-# add_chapter(07_image_views)
 # add_chapter(08_graphics_pipeline)
 # add_chapter(09_shader_modules SHADER 09_shader_base)
 # add_chapter(10_fixed_functions SHADER 10_shader_base)
