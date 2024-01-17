@@ -63,6 +63,8 @@ Device::Device(const PhysicalDevice &physical_device, VkSurfaceKHR surface, cons
         throw std::runtime_error("failed to create logical device!");
     }
 
+    volkLoadDevice(m_handle);
+
     m_graphics_queue = std::make_unique<Queue>(*this, find_queue_family().graphicsFamily.value(), m_physical_device.get_queue_family_properties()[find_queue_family().graphicsFamily.value()], m_physical_device.is_present_supported(nullptr, find_queue_family().graphicsFamily.value()), 0);
 
     // m_queues.resize(queue_family_properties_count);
