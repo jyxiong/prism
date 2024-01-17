@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 
+#include "volk.h"
 #include "final.h"
 
 const unsigned int WIDTH = 800;
@@ -17,6 +18,14 @@ const bool enableValidationLayers = false;
 #else
 const bool enableValidationLayers = true;
 #endif
+
+HelloTriangleApplication::HelloTriangleApplication()
+{
+    if(volkInitialize())
+    {
+        throw std::runtime_error("failed to initialize volk!");
+    }
+}
 
 HelloTriangleApplication::~HelloTriangleApplication()
 {
