@@ -118,6 +118,8 @@ Instance::Instance(const std::string &app_name, const std::vector<const char *> 
         throw std::runtime_error("failed to create instance!");
     }
 
+    volkLoadInstance(m_handle);
+    
     if (enable_validation_layers)
     {
         // 配置debug messenger的信息

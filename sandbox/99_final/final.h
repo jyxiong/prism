@@ -25,9 +25,11 @@ private:
     std::unique_ptr<comet::Swapchain> m_swapchain;
     std::vector<comet::ImageView> m_image_views;
 public:
-    void run();
+    HelloTriangleApplication();
 
     ~HelloTriangleApplication();
+
+    void run();
 
 private:
     void initWindow();
