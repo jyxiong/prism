@@ -30,6 +30,8 @@ Instance::Instance(const std::string &app_name, const std::vector<const char*> &
     {
         throw std::runtime_error("failed to create instance!");
     }
+
+    volkLoadInstance(m_handle);
 }
 
 Instance::~Instance()

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.16)
 
 project(procometject CXX)
 
@@ -12,8 +12,6 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-find_package(Vulkan REQUIRED)
 
 add_subdirectory(external)
 add_subdirectory(sandbox)

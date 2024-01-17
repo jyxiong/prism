@@ -5,8 +5,6 @@
 #include <functional>
 #include <memory>
 
-#include "vulkan/vulkan.h"
-
 #include "comet/core/application.h"
 #include "comet/core/window.h"
 #include "comet/vulkan/instance.h"

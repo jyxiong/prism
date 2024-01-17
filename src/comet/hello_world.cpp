@@ -7,6 +7,10 @@ using namespace comet;
 HelloTriangle::HelloTriangle(const std::string &name)
     : Application(name)
 {
+    if (volkInitialize())
+    {
+        throw std::runtime_error("failed to initialize volk!");
+    }
 }
 
 void HelloTriangle::run()
