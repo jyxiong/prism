@@ -3,8 +3,12 @@
 #include <string>
 #include <vector>
 
+#include "vulkan/vulkan.h"
+
 namespace comet
 {
+    class Instance;
+
     class Window
     {
     public:
@@ -50,7 +54,9 @@ namespace comet
 
         virtual void close() = 0;
 
-        virtual std::vector<const char *> get_required_surface_extensions() const = 0;
+        virtual std::vector<const char *> get_required_extensions() const = 0;
+
+        virtual VkSurfaceKHR create_surface(VkInstance instance, VkPhysicalDevice physical_device) = 0;
 
         Extent resize(const Extent &extent);
 
