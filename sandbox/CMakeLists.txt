@@ -13,13 +13,14 @@ function(add_shaders_target SHADER_TARGET)
     # SHADER_SOURCES
     cmake_parse_arguments("SHADER" "" "CHAPTER_NAME" "SOURCES" ${ARGN})
 
-    set(SHADERS_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    set(SHADERS_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${SHADER_CHAPTER_NAME})
 
     # 创建shader目录
-    add_custom_command(
-        OUTPUT ${SHADERS_DIR}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADERS_DIR}
-    )
+    # add_custom_command(
+    #     OUTPUT ${SHADERS_DIR}
+    #     COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADERS_DIR}
+    # )
+    file(MAKE_DIRECTORY ${SHADERS_DIR})
 
     # 编译shader
     add_custom_command(
@@ -31,6 +32,7 @@ function(add_shaders_target SHADER_TARGET)
         COMMENT "compiling shader"
         VERBATIM
     )
+
     # 添加自定义目标
     add_custom_target(${SHADER_TARGET} DEPENDS ${SHADERS_DIR}/frag.spv ${SHADERS_DIR}/vert.spv)
 
@@ -68,4 +70,16 @@ function(add_chapter CHAPTER_NAME)
 
 endfunction()
 
-add_chapter(00_hello_world SHADER shader)
+# add_chapter(08_graphics_pipeline)
+# add_chapter(09_shader_modules SHADER 09_shader_base)
+# add_chapter(10_fixed_functions SHADER 10_shader_base)
+# add_chapter(11_render_passes SHADER 11_shader_base)
+# add_chapter(12_graphics_pipeline_complete SHADER 12_shader_base)
+# add_chapter(13_framebuffers SHADER 13_shader_base)
+# add_chapter(14_command_buffers SHADER 14_shader_base)
+# add_chapter(15_hello_triangle SHADER 15_shader_base)
+# add_chapter(16_frames_in_flight SHADER 16_shader_base)
+# add_chapter(17_swap_chain_recreation SHADER 17_shader_base)
+# add_chapter(18_shader_input SHADER 18_shader_vertex_buffer)
+
+add_chapter(99_final)
