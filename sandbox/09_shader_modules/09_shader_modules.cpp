@@ -6,6 +6,8 @@
 #include <set>
 #include <fstream>
 #include <algorithm>
+#include <cstring>
+#include <limits>
 #include "GLFW/glfw3.h"
 
 const unsigned int WIDTH = 800;
@@ -79,6 +81,11 @@ void HelloTriangleApplication::initWindow()
 
 void HelloTriangleApplication::initVulkan()
 {
+    if (volkInitialize())
+    {
+        throw std::runtime_error("failed to initialize volk!");
+    }
+
     createInstance();
 
     setupDebugMessenger();
@@ -183,6 +190,8 @@ void HelloTriangleApplication::createInstance()
     {
         throw std::runtime_error("failed to create instance!");
     }
+
+    volkLoadInstance(m_instance);
 }
 
 bool HelloTriangleApplication::checkValidationLayerSupport()
@@ -422,6 +431,7 @@ void HelloTriangleApplication::createLogicalDevice()
     {
         throw std::runtime_error("failed to create logical device!");
     }
+    volkLoadDevice(m_device);
 
     // 分别获取图形队列和显示队列
     vkGetDeviceQueue(m_device, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
@@ -636,8 +646,8 @@ void HelloTriangleApplication::createImageViews()
 void HelloTriangleApplication::createGraphicsPipeline()
 {
     // 读取着色器文件
-    auto vertShaderCode = readFile("../shaders/vert.spv");
-    auto fragShaderCode = readFile("../shaders/frag.spv");
+    auto vertShaderCode = readFile("./shaders/vert.spv");
+    auto fragShaderCode = readFile("./shaders/frag.spv");
 
     // 创建着色器模块
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
