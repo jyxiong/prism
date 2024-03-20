@@ -34,8 +34,12 @@ namespace comet
 
 	    VmaAllocator get_memory_allocator() const;
 
-        // void add_queue(size_t global_index, uint32_t family_index, VkQueueFamilyProperties properties, VkBool32 can_present);
-        // VkQueue get_queue_by_flags(VkQueueFlagBits flags);
+        const Queue &get_queue(uint32_t queue_family_index, uint32_t queue_index);
+
+        const Queue &get_queue_by_flags(VkQueueFlags queue_flags, uint32_t queue_index) const;
+
+        const Queue &get_queue_by_present(uint32_t queue_index) const;
+
 
         QueueFamilyIndices find_queue_family();
 
@@ -58,6 +62,6 @@ namespace comet
 
         VmaAllocator m_memory_allocator{VK_NULL_HANDLE};
 
-        // std::vector<std::vector<Queue>> m_queues;
+        std::vector<std::vector<Queue>> m_queues;
     };
 }

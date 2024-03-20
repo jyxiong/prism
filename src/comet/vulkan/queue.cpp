@@ -1,6 +1,7 @@
 #include "comet/vulkan/queue.h"
 
 #include "comet/vulkan/device.h"
+#include "vulkan/vulkan_core.h"
 
 using namespace comet;
 
@@ -12,4 +13,19 @@ Queue::Queue(Device &device, uint32_t family_index, VkQueueFamilyProperties prop
 
 Queue::~Queue()
 {
+}
+
+VkQueue Queue::get_handle() const
+{
+    return m_handle;
+}
+
+const VkQueueFamilyProperties &Queue::get_properties() const
+{
+	return m_properties;
+}
+
+VkBool32 Queue::support_present() const
+{
+	return m_can_present;
 }

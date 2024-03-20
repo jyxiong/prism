@@ -14,6 +14,10 @@ namespace comet
 
             VkQueue get_handle() const;
 
+            const VkQueueFamilyProperties &get_properties() const;
+
+            VkBool32 support_present() const;
+
         private:
             const Device& m_device;
 
