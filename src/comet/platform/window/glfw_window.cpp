@@ -1,6 +1,7 @@
 #include "comet/platform/window/glfw_window.h"
 
 #include <stdexcept>
+#include "comet/vulkan/instance.h"
 
 using namespace comet;
 
@@ -42,9 +43,24 @@ void GlfwWindow::close()
     glfwSetWindowShouldClose(m_handle, GLFW_TRUE);
 }
 
-std::vector<const char *> GlfwWindow::get_required_surface_extensions() const
+std::vector<const char *> GlfwWindow::get_required_extensions() const
 {
     uint32_t glfw_extension_count{0};
     const char **names = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
     return {names, names + glfw_extension_count};
+}
+
+VkSurfaceKHR GlfwWindow::create_surface(VkInstance instance, VkPhysicalDevice physical_device)
+{
+    if (instance == VK_NULL_HANDLE || !m_handle)
+    {
+        return VK_NULL_HANDLE;
+    }
+
+    VkSurfaceKHR surface{nullptr};
+    if (glfwCreateWindowSurface(instance, m_handle, nullptr, &surface) != VK_SUCCESS)
+    {
+        return VK_NULL_HANDLE;
+    }
+    return surface;
 }
