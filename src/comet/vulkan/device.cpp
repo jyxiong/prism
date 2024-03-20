@@ -95,6 +95,11 @@ const PhysicalDevice &Device::get_physical_device() const
     return m_physical_device;
 }
 
+VmaAllocator Device::get_memory_allocator() const
+{
+    return m_memory_allocator;
+}
+
 // void Device::add_queue(size_t global_index, uint32_t family_index, VkQueueFamilyProperties properties, VkBool32 can_present)
 // {
 //     m_queues[global_index].emplace_back(Queue{*this, family_index, properties, can_present, 0});

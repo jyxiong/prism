@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "volk.h"
+#include "vk_mem_alloc.h"
 
 #include "comet/vulkan/physical_device.h"
 #include "comet/vulkan/queue.h"
@@ -31,6 +32,8 @@ namespace comet
 
         const PhysicalDevice &get_physical_device() const;
 
+	    VmaAllocator get_memory_allocator() const;
+
         // void add_queue(size_t global_index, uint32_t family_index, VkQueueFamilyProperties properties, VkBool32 can_present);
         // VkQueue get_queue_by_flags(VkQueueFlagBits flags);
 
@@ -52,6 +55,8 @@ namespace comet
 
         std::unique_ptr<Queue> m_graphics_queue;
         std::unique_ptr<Queue> m_present_queue;
+
+        VmaAllocator m_memory_allocator{VK_NULL_HANDLE};
 
         // std::vector<std::vector<Queue>> m_queues;
     };
