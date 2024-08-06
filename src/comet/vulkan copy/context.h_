@@ -1,0 +1,104 @@
+#pragma once
+
+#include <optional>
+#include <map>
+#include <memory>
+
+#include "vulkan/vulkan.h"
+
+#include "comet/vulkan/device_features.h"
+
+namespace comet
+{
+  struct ContextCreateInfo
+  {
+    std::string app_name;
+    uint32_t app_version;
+
+    std::string engine_name;
+    uint32_t engine_version;
+
+    uint32_t api_version;
+
+    std::vector<std::string> instance_layers;
+    std::vector<std::string> instance_extensions;
+
+    std::vector<std::string> device_extensions;
+    DeviceFeatures device_features;
+
+    std::optional<uint32_t> select_physical_device_index;
+
+    void add_instance_layer(const std::string &layer);
+    void add_instance_extension(const std::string &extension);
+    void add_device_extension(const std::string &extension);
+    template <typename T>
+    void add_device_feature(VkStructureType type, VkBool32 T::*member)
+    {
+      auto &feature = device_features.get<T>(type);
+      feature.*member = VK_TRUE;
+    }
+  };
+
+  struct PhysicalDeviceInfo
+  {
+    VkPhysicalDeviceFeatures features;
+    VkPhysicalDeviceProperties properties;
+    VkPhysicalDeviceMemoryProperties memory_properties;
+    std::vector<VkQueueFamilyProperties> queue_family_properties;
+  };
+
+  struct Queue
+  {
+    VkQueue handle;
+    uint32_t family_index;
+    uint32_t index;
+
+    VkResult submit(const std::vector<VkSubmitInfo> &infos, VkFence fence) const;
+    VkResult present(const VkPresentInfoKHR &info) const;
+    VkResult waitIdle() const;
+  };
+
+  class Context
+  {
+  public:
+    Context() = default;
+    ~Context() = default;
+
+    void create(const ContextCreateInfo &info);
+    void destroy();
+
+    VkInstance get_instance() { return m_instance; }
+
+    VkPhysicalDevice get_physical_device() { return m_physical_device; }
+
+    VkDevice get_device() { return m_device; }
+
+    const Queue &get_queue_by_flags(VkQueueFlags required_queue_flags, uint32_t queue_index = 0) const;
+
+  private:
+    void create_instance(const ContextCreateInfo &info);
+    void create_debug_messenger();
+    void pick_physical_device(const ContextCreateInfo &info);
+    void create_logical_device(const ContextCreateInfo &info);
+
+    bool check_instance_layers(const std::vector<std::string> &layers);
+    bool check_instance_extensions(const std::vector<std::string> &extensions);
+    bool check_device_extensions(VkPhysicalDevice physical_device, const std::vector<std::string> &extensions);
+
+  private:
+    VkInstance m_instance{VK_NULL_HANDLE};
+    std::vector<const char *> m_instance_layers;
+    std::vector<const char *> m_instance_extensions;
+
+    VkPhysicalDevice m_physical_device{VK_NULL_HANDLE};
+    PhysicalDeviceInfo m_physical_device_info;
+    std::vector<const char *> m_device_extensions;
+
+    VkDevice m_device{VK_NULL_HANDLE};
+    std::vector<std::vector<Queue>> m_queues;
+
+    VkDebugUtilsMessengerEXT m_dbg_messenger{VK_NULL_HANDLE};
+    PFN_vkCreateDebugUtilsMessengerEXT m_create_dbg_messenger{nullptr};
+    PFN_vkDestroyDebugUtilsMessengerEXT m_destroy_dbg_messenger{nullptr};
+  };
+} // namespace comet
