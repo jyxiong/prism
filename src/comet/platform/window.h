@@ -1,9 +1,7 @@
 #pragma once
 
-#include <string>
-#include <vector>
-
 #include "volk.h"
+#include "GLFW/glfw3.h"
 
 namespace comet
 {
@@ -56,7 +54,7 @@ namespace comet
 
         virtual std::vector<const char *> get_required_extensions() const = 0;
 
-        virtual VkSurfaceKHR create_surface(VkInstance instance, VkPhysicalDevice physical_device) = 0;
+        virtual VkSurfaceKHR create_surface(const Instance& instance) = 0;
 
         Extent resize(const Extent &extent);
 

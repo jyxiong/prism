@@ -1,84 +1,75 @@
 #pragma once
 
-#include <unordered_set>
 
-#include "volk.h"
-#include "vulkan/vulkan_core.h"
-#include "vk_mem_alloc.h"
 
 #include "comet/vulkan/device.h"
+#include "comet/vulkan/device_memory.h"
+#include "comet/vulkan/command_pool.h"
 
 namespace comet
 {
-
-    class ImageView;
-
-    class Image
-    {
+  class ImageCreateInfo : public VkImageCreateInfo
+  {
     public:
-        Image(const Device &device,
-              VkImage handle,
-              const VkExtent3D &extent,
-              VkFormat format,
-              VkImageUsageFlags image_usage,
-              VkSampleCountFlagBits sample_count = VK_SAMPLE_COUNT_1_BIT);
+      ImageCreateInfo();
 
-	    Image(Device const &        device,
-            const VkExtent3D &    extent,
-            VkFormat              format,
-            VkImageUsageFlags     image_usage,
-            VmaMemoryUsage        memory_usage,
-            VkSampleCountFlagBits sample_count       = VK_SAMPLE_COUNT_1_BIT,
-            uint32_t              mip_levels         = 1,
-            uint32_t              array_layers       = 1,
-            VkImageTiling         tiling             = VK_IMAGE_TILING_OPTIMAL,
-            VkImageCreateFlags    flags              = 0,
-            uint32_t              num_queue_families = 0,
-            const uint32_t *      queue_families     = nullptr);
+      ImageCreateInfo& set_image_type(VkImageType image_type);
 
-        ~Image() = default;
+      ImageCreateInfo& set_format(VkFormat format);
 
-        Device &get_device() const;
+      ImageCreateInfo& set_extent(VkExtent3D extent);
 
-        VkImage get_handle() const;
+      ImageCreateInfo& set_mip_levels(uint32_t mip_levels);
 
-        const VkExtent3D& get_extent() const;
+      ImageCreateInfo& set_array_layers(uint32_t array_layers);
 
-        VkFormat get_format() const;
+      ImageCreateInfo& set_samples(VkSampleCountFlagBits samples);
 
-        VkImageSubresource get_subresource() const;
+      ImageCreateInfo& set_tiling(VkImageTiling tiling);
 
-        std::unordered_set<ImageView *> &get_views();
+      ImageCreateInfo& set_usage(VkImageUsageFlags usage);
 
-    private:
-        Device *m_device{};
+      ImageCreateInfo& set_sharing_mode(VkSharingMode sharing_mode);
 
-        VkImage m_handle{};
+      ImageCreateInfo& set_queue_family_indices(const std::vector<uint32_t> &queue_family_indices);
 
-        VkImageType m_type{};
+      ImageCreateInfo& set_initial_layout(VkImageLayout initial_layout);
+  };
 
-        VkExtent3D m_extent{};
+  class Image
+  {
+  public:
+    Image(const Device &device, VkImage handle);
 
-        VkFormat m_format{};
+    Image(const Device &device, const ImageCreateInfo &create_info);
 
-        VkImageUsageFlags m_usage{};
+    virtual ~Image();
 
-	    VkSampleCountFlagBits m_sample_count{};
+    const Device &get_device() const;
 
-	    VkImageTiling m_tiling{};
+    VkImage get_handle() const;
 
-	    VkImageSubresource m_subresource{};
+    VkFormat get_format() const;
 
-	    uint32_t m_array_layer_count{0};
+    VkImageType get_image_type() const;
 
-        /// Image views referring to this image
-        std::unordered_set<ImageView *> m_views;
+    uint32_t get_mip_level_count() const;
 
-        VmaAllocation m_memory{VK_NULL_HANDLE};
+    uint32_t get_array_layer_count() const;
 
-        uint8_t *m_mapped_data{nullptr};
+    const VkMemoryRequirements &get_memory_requirements() const;
 
-	    /// Whether it was mapped with vmaMapMemory
-	    bool m_mapped{false};
-    };
+    void bind(const DeviceMemory& memory, VkDeviceSize offset = 0);
+
+    void upload(const CommandPool &command_pool, const void *data, VkDeviceSize size);
+
+  private:
+    const Device &m_device;
+
+    VkImage m_handle{};
+
+    ImageCreateInfo m_info;
+
+    VkMemoryRequirements m_memory_requirements;
+  };
 } // namespace comet

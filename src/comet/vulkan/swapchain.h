@@ -1,94 +1,63 @@
 #pragma once
 
-#include <vector>
 #include <set>
+#include <optional>
 
-#include "volk.h"
+
+#include "comet/vulkan/image_view.h"
+#include "comet/vulkan/semaphore.h"
+#include "comet/vulkan/fence.h"
 
 namespace comet
 {
-	class Device;
+  class Device;
+  class Surface;
 
-	enum ImageFormat
-	{
-		sRGB,
-		UNORM
-	};
+  class SwapchainCreateInfo : public VkSwapchainCreateInfoKHR
+  {
+  public:
+    SwapchainCreateInfo();
+  };
 
-	struct SwapchainProperties
-	{
-		VkSwapchainKHR old_swapchain;
+  class Swapchain
+  {
+  public:
+    struct Properties
+    {
+      VkExtent2D extent{};
+      uint32_t image_count{3};
+      VkPresentModeKHR present_mode{VK_PRESENT_MODE_FIFO_KHR};
+      VkSurfaceFormatKHR surface_format{VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+      VkImageUsageFlags image_usage{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
+    };
 
-		uint32_t image_count{3};
-		VkExtent2D extent{};
-		uint32_t array_layers;
-		VkImageUsageFlags image_usage;
-		VkSurfaceTransformFlagBitsKHR pre_transform;
-		VkCompositeAlphaFlagBitsKHR composite_alpha;
+  public:
+    Swapchain(const Device &device, const Surface &surface, const Properties &required, const std::optional<Swapchain> &old_swapchain = std::nullopt);
 
-		VkSurfaceFormatKHR surface_format{};
+    ~Swapchain();
 
-		VkPresentModeKHR present_mode;
-	};
+    VkSwapchainKHR get_handle() const;
 
-	class Swapchain
-	{
-	public:
-		Swapchain(Device &device, const VkSurfaceKHR &surface,
-				  const VkPresentModeKHR &present_mode = VK_PRESENT_MODE_FIFO_KHR,
-				  const std::vector<VkPresentModeKHR> &present_mode_priority_list = {VK_PRESENT_MODE_FIFO_KHR,
-																					 VK_PRESENT_MODE_MAILBOX_KHR},
-				  const VkSurfaceFormatKHR &surface_format = {VK_FORMAT_R8G8B8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR},
-				  const std::vector<VkSurfaceFormatKHR> &surface_format_priority_list = {{VK_FORMAT_R8G8B8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR},
-																						 {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}},
-				  const VkExtent2D &extent = {},
-				  uint32_t image_count = 3,
-				  uint32_t array_layers = 1,
-				  const VkSurfaceTransformFlagBitsKHR transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
-				  const std::set<VkImageUsageFlagBits> &image_usage_flags = {VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_USAGE_TRANSFER_SRC_BIT});
+    const VkFormat &get_format() const;
 
-		Swapchain(Swapchain &old_swapchain, Device &device, const VkSurfaceKHR &surface,
-				  const VkPresentModeKHR &present_mode = VK_PRESENT_MODE_FIFO_KHR,
-				  const std::vector<VkPresentModeKHR> &present_mode_priority_list = {VK_PRESENT_MODE_FIFO_KHR,
-																					 VK_PRESENT_MODE_MAILBOX_KHR},
-				  const VkSurfaceFormatKHR &surface_format = {VK_FORMAT_R8G8B8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR},
-				  const std::vector<VkSurfaceFormatKHR> &surface_format_priority_list = {{VK_FORMAT_R8G8B8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR},
-																						 {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}},
-				  const VkExtent2D &extent = {},
-				  uint32_t image_count = 3,
-				  uint32_t array_layers = 1,
-				  const VkSurfaceTransformFlagBitsKHR transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
-				  const std::set<VkImageUsageFlagBits> &image_usage_flags = {VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_USAGE_TRANSFER_SRC_BIT});
+    const VkExtent2D &get_extent() const;
 
-		~Swapchain();
+    const std::vector<VkImage> &get_images() const;
 
-		VkSwapchainKHR get_handle() const;
+    VkResult acquire_next_image(uint64_t time_out, const Semaphore& semaphore, const std::optional<Fence>& fence, uint32_t &image_index) const;
 
-		const std::vector<VkImage> &get_images() const;
+  private:
+    VkSwapchainKHR m_handle{};
 
-		VkFormat get_format() const;
+    const Device &m_device;
 
-		const VkExtent2D &get_extent() const;
+    const Surface &m_surface;
 
-		VkImageUsageFlags get_usage() const;
+    std::vector<VkImage> m_images;
+    std::vector<VkImageView> m_image_views;
 
-	private:
-		Device &m_device;
+    Properties m_properties;
 
-		VkSurfaceKHR m_surface{};
-
-		VkSwapchainKHR m_handle{};
-
-		std::vector<VkImage> m_images{};
-
-		std::vector<VkSurfaceFormatKHR> m_surface_formats{};
-
-		std::vector<VkPresentModeKHR> m_present_modes{};
-
-		SwapchainProperties m_properties{};
-
-		std::set<VkImageUsageFlagBits> m_image_usage_flags{};
-
-	}; // class SwapChain
+  }; // class SwapChain
 
 } // namespace comet

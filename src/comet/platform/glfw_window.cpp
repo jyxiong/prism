@@ -1,6 +1,5 @@
-#include "comet/platform/window/glfw_window.h"
+#include "comet/platform/glfw_window.h"
 
-#include <stdexcept>
 #include "comet/vulkan/instance.h"
 
 using namespace comet;
@@ -50,15 +49,10 @@ std::vector<const char *> GlfwWindow::get_required_extensions() const
     return {names, names + glfw_extension_count};
 }
 
-VkSurfaceKHR GlfwWindow::create_surface(VkInstance instance, VkPhysicalDevice physical_device)
+VkSurfaceKHR GlfwWindow::create_surface(const Instance& instance)
 {
-    if (instance == VK_NULL_HANDLE || !m_handle)
-    {
-        return VK_NULL_HANDLE;
-    }
-
     VkSurfaceKHR surface{nullptr};
-    if (glfwCreateWindowSurface(instance, m_handle, nullptr, &surface) != VK_SUCCESS)
+    if (glfwCreateWindowSurface(instance.get_handle(), m_handle, nullptr, &surface) != VK_SUCCESS)
     {
         return VK_NULL_HANDLE;
     }

@@ -4,32 +4,41 @@
 
 namespace comet
 {
-    class Device;
+  class Device;
+  class CommandBuffer;
 
-    class Queue
-    {
-        public:
-            Queue(Device &device, uint32_t family_index, VkQueueFamilyProperties properties, VkBool32 can_present, uint32_t index);
-            ~Queue();
+  class Queue
+  {
+  public:
+    Queue(VkQueue queue, uint32_t family_index, uint32_t index);
+    ~Queue();
 
-            VkQueue get_handle() const;
+    VkQueue get_handle() const;
 
-            const VkQueueFamilyProperties &get_properties() const;
+    uint32_t get_family_index() const;
 
-            VkBool32 support_present() const;
+    uint32_t get_index() const;
 
-        private:
-            const Device& m_device;
+    const VkQueueFamilyProperties &get_properties() const;
 
-            VkQueue m_handle;
+    VkBool32 support_present() const;
 
-            uint32_t m_family_index;
+    void submit(const CommandBuffer &cmd_buffer, VkFence fence = VK_NULL_HANDLE) const;
 
-            uint32_t m_index;
+    void present(const VkPresentInfoKHR &present_info) const;
 
-            VkBool32 m_can_present;
+    void wait_idle() const;
 
-            VkQueueFamilyProperties m_properties;
+  private:
+    VkQueue m_handle;
 
-    }; // class Queue
+    uint32_t m_family_index;
+
+    uint32_t m_index;
+
+    VkBool32 m_can_present;
+
+    VkQueueFamilyProperties m_properties;
+
+  }; // class Queue
 } // namespace comet

@@ -1,57 +1,40 @@
 #pragma once
 
-#include <vector>
 #include "volk.h"
 
 namespace comet
 {
-    class PhysicalDevice
-    {
-    public:
-        PhysicalDevice(VkPhysicalDevice physical_device);
+  class PhysicalDevice
+  {
+  public:
+    PhysicalDevice(VkPhysicalDevice physical_device);
 
-        PhysicalDevice(const PhysicalDevice &) = delete;
+    ~PhysicalDevice() = default;
 
-        PhysicalDevice(PhysicalDevice &&) = delete;
+    VkPhysicalDevice get_handle() const;
 
-        PhysicalDevice &operator=(const PhysicalDevice &) = delete;
+    const VkPhysicalDeviceFeatures &get_features() const;
 
-        PhysicalDevice &operator=(PhysicalDevice &&) = delete;
+    const VkPhysicalDeviceProperties &get_properties() const;
 
-        ~PhysicalDevice() = default;
+    const VkPhysicalDeviceMemoryProperties &get_memory_properties() const;
 
-        VkPhysicalDevice get_handle() const;
+    const std::vector<VkQueueFamilyProperties> &get_queue_family_properties() const;
 
-        const VkPhysicalDeviceFeatures &get_features() const;
+    VkFormatProperties get_format_properties(VkFormat format) const;
 
-        const VkPhysicalDeviceProperties &get_properties() const;
+    uint32_t get_queue_family_index(VkQueueFlags flags) const;
 
-        const VkPhysicalDeviceMemoryProperties &get_memory_properties() const;
+    bool check_extension(const std::string& extension) const;
 
-        const std::vector<VkQueueFamilyProperties> &get_queue_family_properties() const;
-
-        VkBool32 is_present_supported(VkSurfaceKHR surface, uint32_t queue_family_index) const;
-
-        VkFormatProperties get_format_properties(VkFormat format) const;
-
-    private:
-        VkPhysicalDevice m_handle{VK_NULL_HANDLE};
-
-        // The features that this GPU supports
-        VkPhysicalDeviceFeatures m_features{};
-
-        // The features that will be requested to be enabled in the logical device
-        VkPhysicalDeviceFeatures m_requested_features{};
-
-        // The GPU properties
-        VkPhysicalDeviceProperties m_properties;
-
-        // The GPU memory properties
-        VkPhysicalDeviceMemoryProperties m_memory_properties;
-
-        // The GPU queue family properties
-        std::vector<VkQueueFamilyProperties> m_queue_family_properties;
-
-    }; // class PhysicalDevice
+  private:
+    VkPhysicalDevice m_handle{VK_NULL_HANDLE};
+    VkPhysicalDeviceFeatures m_features{};
+    VkPhysicalDeviceFeatures m_requested_features{};
+    VkPhysicalDeviceProperties m_properties;
+    VkPhysicalDeviceMemoryProperties m_memory_properties;
+    std::vector<VkQueueFamilyProperties> m_queue_family_properties;
+    std::vector<VkExtensionProperties> m_extensions;
+  }; // class PhysicalDevice
 
 } // namespace comet

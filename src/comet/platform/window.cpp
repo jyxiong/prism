@@ -1,4 +1,4 @@
-#include "comet/core/window.h"
+#include "comet/platform/window.h"
 
 using namespace comet;
 

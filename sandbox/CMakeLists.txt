@@ -70,4 +70,6 @@ endfunction()
 # add_chapter(17_swap_chain_recreation SHADER 17_shader_base)
 # add_chapter(18_shader_input SHADER 18_shader_vertex_buffer)
 
-add_chapter(99_final)
+# add_chapter(99_final)
+
+add_subdirectory(00_hello_world)

@@ -1,67 +1,50 @@
 #pragma once
 
-#include <vector>
 #include <optional>
 #include <memory>
 
-#include "volk.h"
-#include "vk_mem_alloc.h"
+
 
 #include "comet/vulkan/physical_device.h"
 #include "comet/vulkan/queue.h"
+#include "comet/vulkan/device_features.h"
+#include "comet/vulkan/device_extension_functions.h"
 
 namespace comet
 {
-    struct QueueFamilyIndices
-    {
-        std::optional<unsigned int> graphicsFamily;
+  class Device
+  {
+  public:
+    using ExtensionNames = std::vector<std::string>;
 
-        bool isComplete()
-        {
-            return graphicsFamily.has_value();
-        }
-    };
+  public:
+    Device(const PhysicalDevice &physical_device, const ExtensionNames &extensions, const DeviceFeatures &features);
+    ~Device();
 
-    class Device
-    {
-    public:
-        Device(const PhysicalDevice &physical_device, VkSurfaceKHR surface, const std::vector<const char *> & required_extensions = {});
-        ~Device();
+    VkDevice get_handle() const;
 
-        VkDevice get_handle() const;
+    const PhysicalDevice &get_physical_device() const;
 
-        const PhysicalDevice &get_physical_device() const;
+    const Queue &get_queue(uint32_t family_index, uint32_t index) const;
 
-	    VmaAllocator get_memory_allocator() const;
+    const DeviceExtensionFunctions &get_extension_functions() const;
 
-        const Queue &get_queue(uint32_t queue_family_index, uint32_t queue_index);
+    bool check_extension_enable(const std::string &extension) const;
 
-        const Queue &get_queue_by_flags(VkQueueFlags queue_flags, uint32_t queue_index) const;
+    void wait_idle() const;
 
-        const Queue &get_queue_by_present(uint32_t queue_index) const;
+  private:
+    bool check_extension_support(const std::vector<std::string> &extensions);
 
+  private:
+    const PhysicalDevice &m_physical_device;
 
-        QueueFamilyIndices find_queue_family();
+    VkDevice m_handle;
 
-        bool is_extension_supported(const std::string& extension_name) const;
+    std::vector<const char *> m_extensions;
 
-        bool is_extension_enabled(const char *extension_name) const;
+    std::vector<std::vector<Queue>> m_queues;
 
-    private:
-        const PhysicalDevice &m_physical_device;
-
-        VkSurfaceKHR m_surface;
-
-        VkDevice m_handle;
-
-        std::vector<VkExtensionProperties> m_available_extensions;
-        std::vector<const char*> m_enabled_extensions;
-
-        std::unique_ptr<Queue> m_graphics_queue;
-        std::unique_ptr<Queue> m_present_queue;
-
-        VmaAllocator m_memory_allocator{VK_NULL_HANDLE};
-
-        std::vector<std::vector<Queue>> m_queues;
-    };
+    std::unique_ptr<DeviceExtensionFunctions> m_extension_functions{nullptr};
+  };
 }

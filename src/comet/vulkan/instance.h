@@ -1,48 +1,44 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <memory>
-
 #include "volk.h"
 
 #include "comet/vulkan/physical_device.h"
+#include "comet/vulkan/instance_extension_functions.h"
 
 namespace comet
 {
-    class Instance
-    {
-    public:
-        Instance(const std::string &app_name, const std::vector<const char *> &required_extensions, const std::vector<const char *> &required_layers);
+  class Instance
+  {
+  public:
+    using ExtensionNames = std::vector<std::string>;
+    using LayerNames = std::vector<std::string>;
 
-        Instance(const Instance &) = delete;
+  public:
+    Instance(const ExtensionNames &extensions, const LayerNames& layers);
 
-        Instance(Instance &&) = delete;
+    ~Instance();
 
-        ~Instance();
+    VkInstance get_handle() const;
 
-        Instance &operator=(const Instance &) = delete;
+    const PhysicalDevice& pick_physical_device() const;
 
-        Instance &operator=(Instance &&) = delete;
+  private:
+    bool check_extension_support(const std::vector<std::string> &layers);
+    bool check_layer_support(const std::vector<std::string> &extensions);
+    void query_physical_devices();
+    void create_debug_messenger();
 
-        VkInstance get_handle() const;
+  private:
+    VkInstance m_handle{VK_NULL_HANDLE};
 
-        const std::vector<std::unique_ptr<PhysicalDevice>> &get_physical_devices() const;
+    std::vector<const char *> m_layers{};
 
-        const PhysicalDevice &get_suitable_physical_device(VkSurfaceKHR);
+    std::vector<const char *> m_extensions{};
 
-        bool is_extension_enabled(const char *extension_name) const;
+    std::vector<std::unique_ptr<PhysicalDevice>> m_physical_devices{};
 
-    private:
-        void query_physical_devices();
+    VkDebugUtilsMessengerEXT m_debug_utils_messenger{VK_NULL_HANDLE};
 
-    private:
-        VkInstance m_handle;
-
-        VkDebugUtilsMessengerEXT m_debug_utils_messenger;
-
-        std::vector<std::unique_ptr<PhysicalDevice>> m_physical_devices;
-
-        std::vector<const char *> m_enabled_extensions;
-    };
+    std::unique_ptr<InstanceExtensionFunctions> m_extension_functions{nullptr};
+  };
 } // namespace comet

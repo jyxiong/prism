@@ -4,10 +4,8 @@
 
 namespace comet
 {
-bool is_depth_only_format(VkFormat format);
+  VkAccessFlags access_flags(VkImageLayout layout);
 
-bool is_depth_stencil_format(VkFormat format);
+  VkPipelineStageFlags pipeline_stage_flags(VkImageLayout layout);
 
-bool is_depth_format(VkFormat format);
-
-} // namespace comet
+}

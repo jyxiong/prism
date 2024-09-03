@@ -1,37 +1,51 @@
 #pragma once
 
-#include "volk.h"
+
 #include "comet/vulkan/device.h"
 #include "comet/vulkan/image.h"
 
 namespace comet
 {
-    class ImageView
-    {
+  class ImageViewCreateInfo : public VkImageViewCreateInfo
+  {
     public:
-        ImageView(Image &image, VkImageViewType view_type, VkFormat format = VK_FORMAT_UNDEFINED,
-                  uint32_t base_mip_level = 0, uint32_t base_array_layer = 0,
-                  uint32_t n_mip_levels = 0, uint32_t n_array_layers = 0);
+      ImageViewCreateInfo();
 
-        ImageView(ImageView &) = delete;
+      ImageViewCreateInfo& set_flags(VkImageViewCreateFlags flags);
 
-        ImageView(ImageView &&other);
+      ImageViewCreateInfo& set_view_type(VkImageViewType view_type);
 
-        ~ImageView();
+      ImageViewCreateInfo& set_format(VkFormat format);
 
-        ImageView &operator=(const ImageView &) = delete;
+      ImageViewCreateInfo& set_components(VkComponentMapping components);
 
-        ImageView &operator=(ImageView &&) = delete;
+      ImageViewCreateInfo& set_aspect_mask(VkImageAspectFlags aspect_mask);
 
-    private:
-        Device *m_device{};
+      ImageViewCreateInfo& set_base_mip_level(uint32_t base_mip_level);
 
-        Image *m_image{};
+      ImageViewCreateInfo& set_level_count(uint32_t level_count);
 
-        VkImageView m_handle{};
+      ImageViewCreateInfo& set_base_array_layer(uint32_t base_array_layer);
 
-        VkFormat m_format{};
+      ImageViewCreateInfo& set_layer_count(uint32_t layer_count);
+  };
 
-        VkImageSubresourceRange m_subresource_range{};
-    };
+  class ImageView
+  {
+  public:
+    ImageView(const Image &image, const ImageViewCreateInfo& info);
+
+    ~ImageView();
+
+    const VkImageView &get_handle() const;
+
+  private:
+    const Device &m_device;
+
+    const Image &m_image;
+
+    VkImageView m_handle{};
+
+    ImageViewCreateInfo m_info{};
+  };
 } // namespace comet

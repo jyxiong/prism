@@ -1,11 +1,9 @@
 #pragma once
 
-#include <string>
-
 #include "volk.h"
 #include "GLFW/glfw3.h"
 
-#include "comet/core/window.h"
+#include "comet/platform/window.h"
 
 namespace comet
 {
@@ -25,7 +23,7 @@ namespace comet
 
         std::vector<const char *> get_required_extensions() const override;
 
-        VkSurfaceKHR create_surface(VkInstance instance, VkPhysicalDevice physical_device) override;
+        VkSurfaceKHR create_surface(const Instance& instance) override;
 
     private:
         GLFWwindow *m_handle{nullptr};
