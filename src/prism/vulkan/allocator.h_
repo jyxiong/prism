@@ -1,0 +1,25 @@
+#pragma once
+
+
+#include "vk_mem_alloc.h"
+
+#include "prism/vulkan/instance.h"
+#include "prism/vulkan/device.h"
+#include "prism/vulkan/physical_device.h"
+
+namespace prism
+{
+  class Allocator
+  {
+  public:
+    Allocator(const Instance &instance, const Device &device);
+
+    ~Allocator();
+
+    VmaAllocator get_handle() const;
+
+  private:
+    VmaAllocator m_handle{VK_NULL_HANDLE};
+  }; // class Allocator
+
+} // namespace prism

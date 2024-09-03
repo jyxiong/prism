@@ -1,14 +1,14 @@
 #include "stb_image_write.h"
 
-#include "comet/vulkan/buffer.h"
-#include "comet/vulkan/command_buffer.h"
-#include "comet/vulkan/command_pool.h"
-#include "comet/vulkan/device.h"
-#include "comet/vulkan/device_features.h"
-#include "comet/vulkan/device_memory.h"
-#include "comet/vulkan/instance.h"
+#include "prism/vulkan/buffer.h"
+#include "prism/vulkan/command_buffer.h"
+#include "prism/vulkan/command_pool.h"
+#include "prism/vulkan/device.h"
+#include "prism/vulkan/device_features.h"
+#include "prism/vulkan/device_memory.h"
+#include "prism/vulkan/instance.h"
 
-using namespace comet;
+using namespace prism;
 
 static constexpr uint32_t WIDTH = 800;
 static constexpr uint32_t HEIGHT = 600;
