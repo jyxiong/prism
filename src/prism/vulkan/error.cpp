@@ -1,7 +1,5 @@
 #include "prism/vulkan/error.h"
 
-#include "prism/core/log.h"
-
 const char *to_string(VkResult result)
 {
   const char *result_string = "UNKOWN_ERROR";

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "volk.h"
 
 #include "prism/vulkan/physical_device.h"
 #include "prism/vulkan/instance_extension_functions.h"

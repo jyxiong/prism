@@ -1,10 +1,6 @@
 #include "prism/vulkan/context.h"
 
-#include <cassert>
-#include <iostream>
-
 #include "prism/vulkan/error.h"
-#include "prism/core/log.h"
 
 using namespace prism;
 

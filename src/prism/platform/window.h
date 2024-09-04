@@ -1,8 +1,5 @@
 #pragma once
 
-#include "volk.h"
-#include "GLFW/glfw3.h"
-
 namespace prism
 {
     class Instance;

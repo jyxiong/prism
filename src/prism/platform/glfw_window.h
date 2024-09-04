@@ -1,8 +1,5 @@
 #pragma once
 
-#include "volk.h"
-#include "GLFW/glfw3.h"
-
 #include "prism/platform/window.h"
 
 namespace prism
