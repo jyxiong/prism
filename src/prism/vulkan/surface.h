@@ -9,7 +9,7 @@ namespace prism
   class Surface
   {
   public:
-    Surface(const Instance& instance, const std::unique_ptr<Window>& window);
+    Surface(const Instance& instance, const Window& window);
 
     ~Surface();
 

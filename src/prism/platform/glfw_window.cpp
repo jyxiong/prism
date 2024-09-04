@@ -17,7 +17,7 @@ GlfwWindow::GlfwWindow(const Window::Properties &properties)
     // 不允许调整窗口大小
     glfwWindowHint(GLFW_RESIZABLE, properties.resizable);
 
-    m_handle = glfwCreateWindow(properties.extent.width, properties.extent.height, properties.title.c_str(), nullptr, nullptr);
+    m_handle = glfwCreateWindow(properties.extent.x, properties.extent.y, properties.title.c_str(), nullptr, nullptr);
 }
 
 GlfwWindow::~GlfwWindow()
@@ -49,7 +49,7 @@ std::vector<const char *> GlfwWindow::get_required_extensions() const
     return {names, names + glfw_extension_count};
 }
 
-VkSurfaceKHR GlfwWindow::create_surface(const Instance& instance)
+VkSurfaceKHR GlfwWindow::create_surface(const Instance& instance) const
 {
     VkSurfaceKHR surface{nullptr};
     if (glfwCreateWindowSurface(instance.get_handle(), m_handle, nullptr, &surface) != VK_SUCCESS)

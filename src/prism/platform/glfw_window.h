@@ -20,7 +20,7 @@ namespace prism
 
         std::vector<const char *> get_required_extensions() const override;
 
-        VkSurfaceKHR create_surface(const Instance& instance) override;
+        VkSurfaceKHR create_surface(const Instance& instance) const override;
 
     private:
         GLFWwindow *m_handle{nullptr};

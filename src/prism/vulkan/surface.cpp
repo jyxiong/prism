@@ -2,10 +2,10 @@
 
 using namespace prism;
 
-Surface::Surface(const Instance& instance, const std::unique_ptr<Window>& window)
+Surface::Surface(const Instance& instance, const Window& window)
   : m_instance(instance)
 {
-  m_handle = window->create_surface(m_instance);
+  m_handle = window.create_surface(m_instance);
 }
 
 Surface::~Surface()

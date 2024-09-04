@@ -7,12 +7,6 @@ namespace prism
     class Window
     {
     public:
-        struct Extent
-        {
-            uint32_t width;
-            uint32_t height;
-        };
-
         enum class Mode
         {
             Headless,
@@ -35,7 +29,7 @@ namespace prism
             Mode mode = Mode::Default;
             bool resizable = true;
             Vsync vsync = Vsync::Default;
-            Extent extent = {1280, 720};
+            glm::ivec2 extent = {1280, 720};
         };
 
     public:
@@ -51,9 +45,9 @@ namespace prism
 
         virtual std::vector<const char *> get_required_extensions() const = 0;
 
-        virtual VkSurfaceKHR create_surface(const Instance& instance) = 0;
+        virtual VkSurfaceKHR create_surface(const Instance& instance) const = 0;
 
-        Extent resize(const Extent &extent);
+        glm::ivec2 resize(const glm::ivec2 &extent);
 
     private:
         Properties m_properties;
