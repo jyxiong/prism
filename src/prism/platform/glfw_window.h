@@ -12,6 +12,8 @@ namespace prism
 
         ~GlfwWindow() override;
 
+        void* get_handle() const override;
+
         bool should_close() override;
 
         void process_events() override;

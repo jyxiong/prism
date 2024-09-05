@@ -1,10 +1,5 @@
 #pragma once
 
-#include <set>
-#include <optional>
-
-
-#include "prism/vulkan/image_view.h"
 #include "prism/vulkan/semaphore.h"
 #include "prism/vulkan/fence.h"
 

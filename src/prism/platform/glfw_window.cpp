@@ -27,6 +27,11 @@ GlfwWindow::~GlfwWindow()
     glfwTerminate();
 }
 
+void* GlfwWindow::get_handle() const
+{
+    return m_handle;
+}
+
 bool GlfwWindow::should_close()
 {
     return glfwWindowShouldClose(m_handle);
@@ -54,6 +59,7 @@ VkSurfaceKHR GlfwWindow::create_surface(const Instance& instance) const
     VkSurfaceKHR surface{nullptr};
     if (glfwCreateWindowSurface(instance.get_handle(), m_handle, nullptr, &surface) != VK_SUCCESS)
     {
+        LOG_CRITICAL("Failed to create window surface!");
         return VK_NULL_HANDLE;
     }
     return surface;

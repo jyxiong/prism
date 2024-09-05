@@ -1,7 +1,5 @@
 #pragma once
 
-
-
 #include "prism/vulkan/device.h"
 #include "prism/vulkan/device_memory.h"
 #include "prism/vulkan/command_pool.h"
@@ -61,7 +59,7 @@ namespace prism
 
     void bind(const DeviceMemory& memory, VkDeviceSize offset = 0);
 
-    void upload(const CommandPool &command_pool, const void *data, VkDeviceSize size);
+    void upload(const CommandPool &command_pool, const void *data, VkDeviceSize size, VkImageLayout target_layout = VK_IMAGE_LAYOUT_GENERAL);
 
   private:
     const Device &m_device;

@@ -1,12 +1,8 @@
 #include "prism/vulkan/swapchain.h"
 
-#include <algorithm>
-#include <stdexcept>
-
 #include "prism/vulkan/device.h"
 #include "prism/vulkan/surface.h"
 #include "prism/vulkan/error.h"
-#include "prism/vulkan/image.h"
 
 using namespace prism;
 
@@ -69,10 +65,13 @@ Swapchain::Swapchain(const Device &device, const Surface &surface, const Propert
   m_images.resize(image_count);
   VK_CHECK(vkGetSwapchainImagesKHR(m_device.get_handle(), m_handle, &image_count, m_images.data()));
 
-  ImageViewCreateInfo image_view_create_info{};
-  image_view_create_info
-    .set_view_type(VK_IMAGE_VIEW_TYPE_2D)
-    .set_format(m_properties.surface_format.format);
+  VkImageViewCreateInfo image_view_create_info{};
+  image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  image_view_create_info.format = m_properties.surface_format.format;
+  image_view_create_info.subresourceRange.levelCount = 1;
+  image_view_create_info.subresourceRange.layerCount = 1;
+  image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   
   for (auto &image : m_images)
   {

@@ -37,6 +37,8 @@ namespace prism
 
         virtual ~Window() = default;
 
+        virtual void* get_handle() const = 0;
+
         virtual bool should_close() = 0;
 
         virtual void process_events() = 0;

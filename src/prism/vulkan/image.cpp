@@ -1,10 +1,10 @@
 #include "prism/vulkan/image.h"
 
-#include "prism/vulkan/error.h"
 #include "prism/vulkan/buffer.h"
-#include "prism/vulkan/device_memory.h"
-#include "prism/vulkan/utils.h"
 #include "prism/vulkan/command_buffer.h"
+#include "prism/vulkan/device_memory.h"
+#include "prism/vulkan/error.h"
+#include "prism/vulkan/utils.h"
 
 using namespace prism;
 
@@ -155,7 +155,7 @@ void Image::bind(const DeviceMemory& memory, VkDeviceSize offset)
 	VK_CHECK(vkBindImageMemory(m_device.get_handle(), m_handle, memory.get_handle(), offset));
 }
 
-void Image::upload(const CommandPool &command_pool, const void *data, VkDeviceSize size)
+void Image::upload(const CommandPool &command_pool, const void *data, VkDeviceSize size, VkImageLayout target_layout)
 {
 	auto stage_buffer = Buffer(m_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 	auto stage_memory = DeviceMemory(m_device, stage_buffer.get_memory_requirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
@@ -202,7 +202,7 @@ void Image::upload(const CommandPool &command_pool, const void *data, VkDeviceSi
 	});
 
 	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-	barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	barrier.newLayout = target_layout;
 	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 	barrier.dstAccessMask = 0;
 

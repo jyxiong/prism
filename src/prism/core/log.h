@@ -18,4 +18,4 @@ namespace prism
 #define LOG_INFO(...) ::prism::Log::get_logger()->info(__VA_ARGS__)
 #define LOG_WARN(...) ::prism::Log::get_logger()->warn(__VA_ARGS__)
 #define LOG_ERROR(...) ::prism::Log::get_logger()->error(__VA_ARGS__)
-#define LOG_CRITICAL(...) ::prism::Log::get_logger()->critical(__VA_ARGS)
+#define LOG_CRITICAL(...) ::prism::Log::get_logger()->critical(__VA_ARGS__)
