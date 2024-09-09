@@ -7,7 +7,15 @@ namespace prism
   public:
     PhysicalDevice(VkPhysicalDevice physical_device);
 
+    PhysicalDevice(const PhysicalDevice &) = delete;
+
+    PhysicalDevice(PhysicalDevice &&) = delete;
+
     ~PhysicalDevice() = default;
+
+    PhysicalDevice &operator=(const PhysicalDevice &) = delete;
+
+    PhysicalDevice &operator=(PhysicalDevice &&) = delete;
 
     VkPhysicalDevice get_handle() const;
 

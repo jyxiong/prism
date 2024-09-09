@@ -17,6 +17,14 @@ ShaderModule::ShaderModule(const Device &device, const std::string &filename, Vk
   VK_CHECK(vkCreateShaderModule(m_device.get_handle(), &create_info, nullptr, &m_handle));
 }
 
+ShaderModule::ShaderModule(ShaderModule &&other) noexcept
+    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+      m_device(other.m_device),
+      m_stage(other.m_stage),
+      m_entry_point(std::move(other.m_entry_point))
+{
+}
+
 ShaderModule::~ShaderModule()
 {
   if (m_handle != VK_NULL_HANDLE)

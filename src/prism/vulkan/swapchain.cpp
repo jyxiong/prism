@@ -83,6 +83,16 @@ Swapchain::Swapchain(const Device &device, const Surface &surface, const Propert
   }
 }
 
+Swapchain::Swapchain(Swapchain &&other) noexcept
+    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+      m_device(other.m_device),
+      m_surface(other.m_surface),
+      m_images(std::move(other.m_images)),
+      m_image_views(std::move(other.m_image_views)),
+      m_properties(other.m_properties)
+{
+}
+
 Swapchain::~Swapchain()
 {
   if (m_handle != VK_NULL_HANDLE)

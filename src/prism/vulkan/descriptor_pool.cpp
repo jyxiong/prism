@@ -17,6 +17,14 @@ DescriptorPool::DescriptorPool(const Device &device, const std::vector<VkDescrip
   VK_CHECK(vkCreateDescriptorPool(m_device.get_handle(), &pool_info, nullptr, &m_handle));
 }
 
+DescriptorPool::DescriptorPool(DescriptorPool &&other) noexcept
+    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+      m_device(other.m_device),
+      m_max_sets(other.m_max_sets),
+      m_sizes(std::move(other.m_sizes))
+{
+}
+
 DescriptorPool::~DescriptorPool()
 {
   if (m_handle != VK_NULL_HANDLE)

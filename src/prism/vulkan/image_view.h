@@ -34,7 +34,15 @@ namespace prism
   public:
     ImageView(const Image &image, const ImageViewCreateInfo& info);
 
+    ImageView(const ImageView &) = delete;
+
+    ImageView(ImageView &&other) noexcept;
+
     ~ImageView();
+
+    ImageView &operator=(const ImageView &) = delete;
+
+    ImageView &operator=(ImageView &&) = delete;
 
     const VkImageView &get_handle() const;
 

@@ -39,6 +39,14 @@ DeviceMemory::DeviceMemory(const Device &device, const VkMemoryRequirements &req
     VK_CHECK(vkAllocateMemory(m_device.get_handle(), &allocate_info, nullptr, &m_handle));
 }
 
+DeviceMemory::DeviceMemory(DeviceMemory &&other) noexcept
+    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+      m_device(other.m_device),
+      m_requirements(other.m_requirements),
+      m_property_flags(other.m_property_flags)
+{
+}
+
 DeviceMemory::~DeviceMemory()
 {
     if (m_handle != VK_NULL_HANDLE)

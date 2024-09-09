@@ -10,7 +10,16 @@ namespace prism
   {
   public:
     DescriptorSet(const Device &device, const DescriptorSetLayout& layout, const DescriptorPool& pool);
+
+    DescriptorSet(const DescriptorSet &) = delete;
+
+    DescriptorSet(DescriptorSet &&other) noexcept;
+
     ~DescriptorSet();
+
+    DescriptorSet& operator=(const DescriptorSet &) = delete;
+
+    DescriptorSet& operator=(DescriptorSet &&) = delete;
 
     void update(const std::vector<VkDescriptorBufferInfo> &buffer_infos);
 

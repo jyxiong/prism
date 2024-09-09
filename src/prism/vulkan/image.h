@@ -41,7 +41,15 @@ namespace prism
 
     Image(const Device &device, const ImageCreateInfo &create_info);
 
+    Image(const Image &) = delete;
+
+    Image(Image &&other) noexcept;
+
     virtual ~Image();
+
+    Image &operator=(const Image &) = delete;
+
+    Image &operator=(Image &&) = delete;
 
     const Device &get_device() const;
 

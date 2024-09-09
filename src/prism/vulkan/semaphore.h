@@ -9,7 +9,15 @@ namespace prism
   public:
     Semaphore(const Device& device);
 
+    Semaphore(const Semaphore&) = delete;
+
+    Semaphore(Semaphore&& other) noexcept;
+
     ~Semaphore();
+
+    Semaphore& operator=(const Semaphore&) = delete;
+
+    Semaphore& operator=(Semaphore&&) = delete;
 
     VkSemaphore get_handle() const;
 

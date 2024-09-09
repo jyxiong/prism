@@ -9,7 +9,16 @@ namespace prism
   {
   public:
     ShaderModule(const Device &device, const std::string &filename, VkShaderStageFlagBits stage, const std::string &entry_point = "main");
+
+    ShaderModule(const ShaderModule &) = delete;
+
+    ShaderModule(ShaderModule &&other) noexcept;
+
     ~ShaderModule();
+
+    ShaderModule &operator=(const ShaderModule &) = delete;
+
+    ShaderModule &operator=(ShaderModule &&) = delete;
 
     VkShaderModule get_handle() const;
 

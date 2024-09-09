@@ -128,6 +128,13 @@ Sampler::Sampler(const Device &device, const SamplerCreateInfo &create_info)
   VK_CHECK(vkCreateSampler(m_device.get_handle(), &m_info, nullptr, &m_handle));
 }
 
+Sampler::Sampler(Sampler &&other) noexcept
+  : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+    m_device(other.m_device),
+    m_info(other.m_info)
+{
+}
+
 Sampler::~Sampler()
 {
   if (m_handle != VK_NULL_HANDLE)

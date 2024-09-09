@@ -10,6 +10,15 @@ Queue::Queue(VkQueue queue, uint32_t family_index, uint32_t index)
 {
 }
 
+Queue::Queue(Queue &&other) noexcept
+		: m_handle(std::exchange(other.m_handle, nullptr)),
+		  m_family_index(std::exchange(other.m_family_index, 0)),
+		  m_index(std::exchange(other.m_index, 0)),
+		  m_can_present(std::exchange(other.m_can_present, VK_FALSE)),
+		  m_properties(std::exchange(other.m_properties, {}))
+{
+}
+
 Queue::~Queue()
 {
 }

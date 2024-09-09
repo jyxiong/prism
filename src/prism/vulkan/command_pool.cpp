@@ -15,6 +15,12 @@ CommandPool::CommandPool(const Device &device, uint32_t queue_family_index, VkCo
   VK_CHECK(vkCreateCommandPool(m_device.get_handle(), &pool_info, nullptr, &m_handle));
 }
 
+CommandPool::CommandPool(CommandPool &&other) noexcept
+    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+      m_device(other.m_device)
+{
+}
+
 CommandPool::~CommandPool()
 {
   if (m_handle != VK_NULL_HANDLE)

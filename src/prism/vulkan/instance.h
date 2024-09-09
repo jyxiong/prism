@@ -14,7 +14,15 @@ namespace prism
   public:
     Instance(const ExtensionNames &extensions, const LayerNames& layers);
 
+    Instance(const Instance &) = delete;
+
+    Instance(Instance &&other) = delete;
+
     ~Instance();
+
+    Instance &operator=(const Instance &) = delete;
+
+    Instance &operator=(Instance &&) = delete;
 
     VkInstance get_handle() const;
 

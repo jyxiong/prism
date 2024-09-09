@@ -107,6 +107,14 @@ Image::Image(const Device &device, const ImageCreateInfo& info)
 	vkGetImageMemoryRequirements(m_device.get_handle(), m_handle, &m_memory_requirements);
 }
 
+Image::Image(Image &&other) noexcept
+		: m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+			m_device(other.m_device),
+			m_info(other.m_info),
+			m_memory_requirements(other.m_memory_requirements)
+{
+}
+
 Image::~Image()
 {
 	if (m_handle != VK_NULL_HANDLE)

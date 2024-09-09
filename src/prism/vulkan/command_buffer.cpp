@@ -17,6 +17,13 @@ CommandBuffer::CommandBuffer(const CommandPool &cmd_pool, VkCommandBufferLevel l
   VK_CHECK(vkAllocateCommandBuffers(m_device.get_handle(), &allocate_info, &m_handle));
 }
 
+CommandBuffer::CommandBuffer(CommandBuffer &&other) noexcept
+    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+      m_device(other.m_device),
+      m_cmd_pool(other.m_cmd_pool)
+{
+}
+
 CommandBuffer::~CommandBuffer()
 {
   if (m_handle != VK_NULL_HANDLE)

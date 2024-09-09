@@ -29,7 +29,15 @@ namespace prism
   public:
     Swapchain(const Device &device, const Surface &surface, const Properties &required, const std::optional<Swapchain> &old_swapchain = std::nullopt);
 
+    Swapchain(const Swapchain &) = delete;
+
+    Swapchain(Swapchain &&other) noexcept;
+
     ~Swapchain();
+
+    Swapchain &operator=(const Swapchain &) = delete;
+
+    Swapchain &operator=(Swapchain &&) = delete;
 
     VkSwapchainKHR get_handle() const;
 

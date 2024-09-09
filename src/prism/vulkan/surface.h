@@ -10,7 +10,15 @@ namespace prism
   public:
     Surface(const Instance& instance, const Window& window);
 
+    Surface(const Surface&) = delete;
+
+    Surface(Surface&& other) = delete;
+
     ~Surface();
+
+    Surface& operator=(const Surface&) = delete;
+
+    Surface& operator=(Surface&&) = delete;
 
     VkSurfaceKHR get_handle() const;
 

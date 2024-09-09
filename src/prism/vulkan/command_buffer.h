@@ -10,8 +10,16 @@ namespace prism
   {
   public:
     CommandBuffer(const CommandPool &cmd_pool, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-    
+
+    CommandBuffer(const CommandBuffer &) = delete;
+
+    CommandBuffer(CommandBuffer &&other) noexcept;
+
     ~CommandBuffer();
+
+    CommandBuffer& operator=(const CommandBuffer &) = delete;
+
+    CommandBuffer& operator=(CommandBuffer &&) = delete;
 
     const VkCommandBuffer &get_handle() const;
 

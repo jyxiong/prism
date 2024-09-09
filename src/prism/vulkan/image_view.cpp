@@ -137,6 +137,14 @@ ImageView::ImageView(const Image &image, const ImageViewCreateInfo &info)
   VK_CHECK(vkCreateImageView(m_device.get_handle(), &m_info, nullptr, &m_handle));
 }
 
+ImageView::ImageView(ImageView &&other) noexcept
+    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+      m_device(other.m_device),
+      m_image(other.m_image),
+      m_info(other.m_info)
+{
+}
+
 ImageView::~ImageView()
 {
   if (m_handle != VK_NULL_HANDLE)

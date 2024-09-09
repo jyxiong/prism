@@ -47,7 +47,15 @@ namespace prism
   public:
     Sampler(const Device &device, const SamplerCreateInfo &create_info);
     
+    Sampler(const Sampler &) = delete;
+
+    Sampler(Sampler &&other) noexcept;
+
     ~Sampler();
+
+    Sampler &operator=(const Sampler &) = delete;
+
+    Sampler &operator=(Sampler &&) = delete;
 
     VkSampler get_handle() const;
 

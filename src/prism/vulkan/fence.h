@@ -9,7 +9,15 @@ namespace prism
   public:
     Fence(const Device& device, VkFenceCreateFlags flags = 0);
 
+    Fence(const Fence&) = delete;
+
+    Fence(Fence&& other) noexcept;
+
     ~Fence();
+
+    Fence& operator=(const Fence&) = delete;
+
+    Fence& operator=(Fence&&) = delete;
 
     void wait(uint64_t timeout = UINT64_MAX);
 

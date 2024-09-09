@@ -11,7 +11,15 @@ namespace prism
   public:
     ComputePipeline(const Device &device, const PipelineLayout &pipeline_layout, const ShaderModule& shader_module);
 
+    ComputePipeline(const ComputePipeline &) = delete;
+
+    ComputePipeline(ComputePipeline &&other) noexcept;
+
     ~ComputePipeline();
+
+    ComputePipeline& operator=(const ComputePipeline &) = delete;
+
+    ComputePipeline& operator=(ComputePipeline &&) = delete;
 
     const VkPipeline &get_handle() const;
 

@@ -21,6 +21,12 @@ ComputePipeline::ComputePipeline(const Device &device, const PipelineLayout &pip
   VK_CHECK(vkCreateComputePipelines(m_device.get_handle(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &m_handle));
 }
 
+ComputePipeline::ComputePipeline(ComputePipeline &&other) noexcept
+    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+      m_device(other.m_device)
+{
+}
+
 ComputePipeline::~ComputePipeline()
 {
   if (m_handle != VK_NULL_HANDLE)

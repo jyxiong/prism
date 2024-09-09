@@ -8,7 +8,16 @@ namespace prism
   {
   public:
     Queue(VkQueue queue, uint32_t family_index, uint32_t index);
+
+    Queue(const Queue &) = default;
+
+    Queue(Queue &&other) noexcept;
+
     ~Queue();
+
+    Queue &operator=(const Queue &) = delete;
+
+    Queue &operator=(Queue &&) = delete;
 
     VkQueue get_handle() const;
 

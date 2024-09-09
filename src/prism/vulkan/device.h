@@ -14,7 +14,16 @@ namespace prism
 
   public:
     Device(const PhysicalDevice &physical_device, const ExtensionNames &extensions, const DeviceFeatures &features);
+
+    Device(const Device &) = delete;
+
+    Device(Device &&other) = delete;
+
     ~Device();
+
+    Device &operator=(const Device &) = delete;
+
+    Device &operator=(Device &&) = delete;
 
     VkDevice get_handle() const;
 

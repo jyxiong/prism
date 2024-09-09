@@ -14,6 +14,12 @@ Fence::Fence(const Device& device, VkFenceCreateFlags flags)
   VK_CHECK(vkCreateFence(device.get_handle(), &create_info, nullptr, &m_handle));
 }
 
+Fence::Fence(Fence&& other) noexcept
+  : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+    m_device(other.m_device)
+{
+}
+
 Fence::~Fence()
 {
   if (m_handle != VK_NULL_HANDLE)

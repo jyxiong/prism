@@ -17,6 +17,14 @@ DescriptorSet::DescriptorSet(const Device &device, const DescriptorSetLayout& la
   VK_CHECK(vkAllocateDescriptorSets(device.get_handle(), &alloc_info, &m_handle));
 }
 
+DescriptorSet::DescriptorSet(DescriptorSet &&other) noexcept
+    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+      m_device(other.m_device),
+      m_layout(other.m_layout),
+      m_pool(other.m_pool)
+{
+}
+
 DescriptorSet::~DescriptorSet()
 {
   if (m_handle != VK_NULL_HANDLE)

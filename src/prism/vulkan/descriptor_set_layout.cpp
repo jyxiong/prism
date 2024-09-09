@@ -15,6 +15,13 @@ DescriptorSetLayout::DescriptorSetLayout(const Device &device, const Bindings &b
   VK_CHECK(vkCreateDescriptorSetLayout(m_device.get_handle(), &layout_info, nullptr, &m_handle));
 }
 
+DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayout &&other) noexcept
+    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+      m_device(other.m_device),
+      m_bindings(std::move(other.m_bindings))
+{
+}
+
 DescriptorSetLayout::~DescriptorSetLayout()
 {
   if (m_handle != VK_NULL_HANDLE)

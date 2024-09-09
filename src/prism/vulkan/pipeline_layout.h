@@ -12,7 +12,15 @@ namespace prism
     
     PipelineLayout(const Device &device, const std::vector<DescriptorSetLayout> &descriptor_set_layouts);
 
+    PipelineLayout(const PipelineLayout &) = delete;
+
+    PipelineLayout(PipelineLayout &&other) noexcept;
+    
     ~PipelineLayout();
+
+    PipelineLayout& operator=(const PipelineLayout &) = delete;
+
+    PipelineLayout& operator=(PipelineLayout &&) = delete;
 
     const VkPipelineLayout &get_handle() const;
 

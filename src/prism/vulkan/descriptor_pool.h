@@ -8,7 +8,16 @@ namespace prism
   {
   public:
     DescriptorPool(const Device &device, const std::vector<VkDescriptorPoolSize> &pool_sizes, uint32_t max_sets);
+
+    DescriptorPool(const DescriptorPool &) = delete;
+
+    DescriptorPool(DescriptorPool &&other) noexcept;
+
     ~DescriptorPool();
+
+    DescriptorPool& operator=(const DescriptorPool &) = delete;
+
+    DescriptorPool& operator=(DescriptorPool &&) = delete;
 
     VkDescriptorSet allocate(const VkDescriptorSetLayout &layout);
 

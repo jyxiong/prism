@@ -11,7 +11,16 @@ namespace prism
 
   public:
     DescriptorSetLayout(const Device &device, const Bindings &bindings);
+
+    DescriptorSetLayout(const DescriptorSetLayout &) = delete;
+
+    DescriptorSetLayout(DescriptorSetLayout &&other) noexcept;
+
     ~DescriptorSetLayout();
+
+    DescriptorSetLayout &operator=(const DescriptorSetLayout &) = delete;
+
+    DescriptorSetLayout &operator=(DescriptorSetLayout &&) = delete;
 
     const VkDescriptorSetLayout &get_handle() const;
 

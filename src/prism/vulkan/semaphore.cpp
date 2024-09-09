@@ -14,6 +14,12 @@ Semaphore::Semaphore(const Device& device)
   VK_CHECK(vkCreateSemaphore(device.get_handle(), &create_info, nullptr, &m_handle));
 }
 
+Semaphore::Semaphore(Semaphore&& other) noexcept
+  : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+    m_device(other.m_device)
+{
+}
+
 Semaphore::~Semaphore()
 {
   if (m_handle != VK_NULL_HANDLE)

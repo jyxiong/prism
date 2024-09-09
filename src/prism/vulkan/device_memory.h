@@ -9,7 +9,15 @@ namespace prism
   public:
     DeviceMemory(const Device& device, const VkMemoryRequirements& requirements, VkMemoryPropertyFlags property_flags, VkMemoryAllocateFlags allocate_flags = 0);
 
+    DeviceMemory(const DeviceMemory&) = delete;
+
+    DeviceMemory(DeviceMemory&& other) noexcept;
+
     ~DeviceMemory();
+
+    DeviceMemory& operator=(const DeviceMemory&) = delete;
+
+    DeviceMemory& operator=(DeviceMemory&&) = delete;
 
     void copy(VkDeviceSize offset, VkDeviceSize size, const void* src_data);
 

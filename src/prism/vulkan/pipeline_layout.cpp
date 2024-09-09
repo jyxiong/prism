@@ -37,6 +37,12 @@ PipelineLayout::PipelineLayout(const Device &device, const std::vector<Descripto
   VK_CHECK(vkCreatePipelineLayout(m_device.get_handle(), &pipeline_layout_info, nullptr, &m_handle));
 }
 
+PipelineLayout::PipelineLayout(PipelineLayout &&other) noexcept
+    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+      m_device(other.m_device)
+{
+}
+
 PipelineLayout::~PipelineLayout()
 {
   if (m_handle != VK_NULL_HANDLE)
