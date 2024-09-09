@@ -1,9 +1,5 @@
 #pragma once
 
-#include "glm/glm.hpp"
-
-#include "prism/vulkan/buffer.h"
-
 namespace prism
 {
   class AccelerationStructureInstance

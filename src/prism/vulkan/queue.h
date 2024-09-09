@@ -1,9 +1,7 @@
 #pragma once
 
-
 namespace prism
 {
-  class Device;
   class CommandBuffer;
 
   class Queue

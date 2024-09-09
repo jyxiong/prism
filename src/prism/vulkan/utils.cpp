@@ -1,8 +1,8 @@
-#include "prism/vulkan/device.h"
+#include "prism/vulkan/utils.h"
+
 #include "prism/vulkan/command_pool.h"
 #include "prism/vulkan/queue.h"
 #include "prism/vulkan/command_buffer.h"
-#include "prism/vulkan/buffer.h"
 
 namespace prism::utils
 {

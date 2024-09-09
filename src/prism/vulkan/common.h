@@ -1,6 +1,5 @@
 #pragma once
 
-
 namespace prism
 {
   VkAccessFlags access_flags(VkImageLayout layout);

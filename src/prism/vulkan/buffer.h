@@ -1,7 +1,5 @@
 #pragma once
 
-
-
 #include "prism/vulkan/device.h"
 #include "prism/vulkan/device_memory.h"
 #include "prism/vulkan/command_pool.h"

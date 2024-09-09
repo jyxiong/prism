@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "prism/platform/window.h"
 #include "prism/vulkan/instance.h"
 

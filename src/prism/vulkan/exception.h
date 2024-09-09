@@ -1,6 +1,5 @@
 #pragma once
 
-
 namespace prism
 {
   class Exception : public std::runtime_error

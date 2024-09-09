@@ -12,9 +12,7 @@ GlfwWindow::GlfwWindow(const Window::Properties &properties)
         throw std::runtime_error("Failed to initialize GLFW");
     }
 
-    // 不允许OpenGL
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    // 不允许调整窗口大小
     glfwWindowHint(GLFW_RESIZABLE, properties.resizable);
 
     m_handle = glfwCreateWindow(properties.extent.x, properties.extent.y, properties.title.c_str(), nullptr, nullptr);

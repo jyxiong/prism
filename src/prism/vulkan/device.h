@@ -1,10 +1,5 @@
 #pragma once
 
-#include <optional>
-#include <memory>
-
-
-
 #include "prism/vulkan/physical_device.h"
 #include "prism/vulkan/queue.h"
 #include "prism/vulkan/device_features.h"

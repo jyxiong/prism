@@ -1,6 +1,5 @@
 #include "prism/vulkan/queue.h"
 
-#include "prism/vulkan/device.h"
 #include "prism/vulkan/error.h"
 #include "prism/vulkan/command_buffer.h"
 

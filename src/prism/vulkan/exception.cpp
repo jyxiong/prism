@@ -1,7 +1,5 @@
 #include "prism/vulkan/exception.h"
 
-#include <stdexcept>
-
 using namespace prism;
 
 Exception::Exception(const VkResult result, const std::string &msg)

@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "prism/vulkan/device.h"
 #include "prism/vulkan/image.h"
 

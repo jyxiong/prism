@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 #include "prism/vulkan/device.h"
 
 namespace prism

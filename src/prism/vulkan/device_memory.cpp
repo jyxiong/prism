@@ -1,8 +1,5 @@
 #include "prism/vulkan/device_memory.h"
 
-#include <memory>
-#include <stdexcept>
-
 #include "prism/vulkan/error.h"
 
 using namespace prism;
