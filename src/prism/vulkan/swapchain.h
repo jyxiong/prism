@@ -2,11 +2,29 @@
 
 #include "prism/vulkan/semaphore.h"
 #include "prism/vulkan/fence.h"
+#include "prism/vulkan/image.h"
+#include "prism/vulkan/image_view.h"
 
 namespace prism
 {
   class Device;
   class Surface;
+
+  class SwapchainImage : public Image
+  {
+    public:
+      SwapchainImage(const Device &device, VkImage handle);
+
+      SwapchainImage(const SwapchainImage &) = delete;
+
+      SwapchainImage(SwapchainImage &&other) noexcept;
+
+      ~SwapchainImage() override;
+
+      SwapchainImage &operator=(const SwapchainImage &) = delete;
+
+      SwapchainImage &operator=(SwapchainImage &&) = delete;
+  };
 
   class SwapchainCreateInfo : public VkSwapchainCreateInfoKHR
   {
@@ -45,7 +63,7 @@ namespace prism
 
     const VkExtent2D &get_extent() const;
 
-    const std::vector<VkImage> &get_images() const;
+    const std::vector<SwapchainImage> &get_images() const;
 
     VkResult acquire_next_image(uint64_t time_out, const Semaphore& semaphore, const std::optional<Fence>& fence, uint32_t &image_index) const;
 
@@ -56,8 +74,8 @@ namespace prism
 
     const Surface &m_surface;
 
-    std::vector<VkImage> m_images;
-    std::vector<VkImageView> m_image_views;
+    std::vector<SwapchainImage> m_images;
+    std::vector<ImageView> m_image_views;
 
     Properties m_properties;
 

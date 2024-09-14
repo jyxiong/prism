@@ -23,6 +23,24 @@ VkExtent2D choose_extent(VkExtent2D required, const VkSurfaceCapabilitiesKHR &ca
 
 uint32_t choose_image_count(uint32_t required, const VkSurfaceCapabilitiesKHR &capabilities);
 
+SwapchainImage::SwapchainImage(const Device &device, VkImage handle)
+    : Image(device, handle)
+{
+}
+
+SwapchainImage::SwapchainImage(SwapchainImage &&other) noexcept
+    : Image(std::move(other))
+{
+}
+
+SwapchainImage::~SwapchainImage()
+{
+  if (m_handle != VK_NULL_HANDLE)
+  {
+    m_handle = VK_NULL_HANDLE;
+  }
+}
+
 SwapchainCreateInfo::SwapchainCreateInfo()
 {
 
@@ -62,24 +80,22 @@ Swapchain::Swapchain(const Device &device, const Surface &surface, const Propert
 
   unsigned int image_count;
   VK_CHECK(vkGetSwapchainImagesKHR(m_device.get_handle(), m_handle, &image_count, nullptr));
-  m_images.resize(image_count);
-  VK_CHECK(vkGetSwapchainImagesKHR(m_device.get_handle(), m_handle, &image_count, m_images.data()));
+  std::vector<VkImage> vk_images(image_count);
+  VK_CHECK(vkGetSwapchainImagesKHR(m_device.get_handle(), m_handle, &image_count, vk_images.data()));
 
-  VkImageViewCreateInfo image_view_create_info{};
-  image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-  image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-  image_view_create_info.format = m_properties.surface_format.format;
-  image_view_create_info.subresourceRange.levelCount = 1;
-  image_view_create_info.subresourceRange.layerCount = 1;
-  image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  
-  for (auto &image : m_images)
+  ImageViewCreateInfo image_view_ci{};
+  image_view_ci.set_view_type(VK_IMAGE_VIEW_TYPE_2D)
+      .set_format(m_properties.surface_format.format)
+      .set_level_count(1)
+      .set_layer_count(1)
+      .set_aspect_mask(VK_IMAGE_ASPECT_COLOR_BIT);
+
+  for (auto &vk_image : vk_images)
   {
-    image_view_create_info.image = image;
+    m_images.emplace_back(m_device, vk_image);
 
-    VkImageView image_view;
-    VK_CHECK(vkCreateImageView(m_device.get_handle(), &image_view_create_info, nullptr, &image_view));
-    m_image_views.push_back(image_view);
+    image_view_ci.image = vk_image;
+    m_image_views.emplace_back(m_images.back(), image_view_ci);
   }
 }
 
@@ -99,14 +115,6 @@ Swapchain::~Swapchain()
   {
     vkDestroySwapchainKHR(m_device.get_handle(), m_handle, nullptr);
   }
-
-  for (auto& image_view : m_image_views)
-  {
-    if (image_view != VK_NULL_HANDLE)
-    {
-      vkDestroyImageView(m_device.get_handle(), image_view, nullptr);
-    }
-  }
 }
 
 VkSwapchainKHR Swapchain::get_handle() const
@@ -124,7 +132,7 @@ const VkExtent2D &Swapchain::get_extent() const
   return m_properties.extent;
 }
 
-const std::vector<VkImage> &Swapchain::get_images() const
+const std::vector<SwapchainImage> &Swapchain::get_images() const
 {
   return m_images;
 }

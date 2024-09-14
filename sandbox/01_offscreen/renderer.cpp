@@ -192,7 +192,7 @@ void Renderer::draw() {
   };
 
   if (frame_count % 30 < 10) {
-    draw_to_storage_image(red);
+  draw_to_storage_image(red);
   } else if (frame_count % 30 > 20) {
     draw_to_storage_image(green);
   } else {
@@ -225,7 +225,7 @@ void Renderer::draw() {
   image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
   image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-  image_memory_barrier.image = swapchain_image;
+  image_memory_barrier.image = swapchain_image.get_handle();
 
   vkCmdPipelineBarrier(m_command_buffers[m_current_frame].get_handle(),
                        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
@@ -244,7 +244,7 @@ void Renderer::draw() {
 
   vkCmdCopyImage(m_command_buffers[m_current_frame].get_handle(),
                  m_storage_image->get_handle(),
-                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchain_image,
+                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchain_image.get_handle(),
                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &image_copy);
 
   // transition swapchain image layout
@@ -252,7 +252,7 @@ void Renderer::draw() {
   image_memory_barrier.dstAccessMask = 0;
   image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
   image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-  image_memory_barrier.image = swapchain_image;
+  image_memory_barrier.image = swapchain_image.get_handle();
 
   vkCmdPipelineBarrier(m_command_buffers[m_current_frame].get_handle(),
                        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,

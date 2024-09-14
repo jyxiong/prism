@@ -69,7 +69,7 @@ namespace prism
 
     void upload(const CommandPool &command_pool, const void *data, VkDeviceSize size, VkImageLayout target_layout = VK_IMAGE_LAYOUT_GENERAL);
 
-  private:
+  protected:
     const Device &m_device;
 
     VkImage m_handle{};
