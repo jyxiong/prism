@@ -3,3 +3,4 @@
 
 # Prism: A Vulkan Renderer
 
+[![Build Project](https://github.com/jyxiong/prism/actions/workflows/build.yml/badge.svg)](https://github.com/jyxiong/prism/actions/workflows/build.yml)
