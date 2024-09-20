@@ -114,25 +114,6 @@ void Renderer::create_render_target() {
   image_view_ci.set_view_type(VK_IMAGE_VIEW_TYPE_2D);
   m_storage_image_view =
       std::make_unique<ImageView>(*m_storage_image, image_view_ci);
-
-  VkImageMemoryBarrier image_memory_barrier{};
-  image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-  image_memory_barrier.srcAccessMask = 0;
-  image_memory_barrier.dstAccessMask = 0;
-  image_memory_barrier.image = m_storage_image->get_handle();
-  image_memory_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  image_memory_barrier.subresourceRange.layerCount = 1;
-  image_memory_barrier.subresourceRange.levelCount = 1;
-
-  // auto& queue = m_device->get_queue(m_queue_family_index, 0);
-  // utils::submit_commands_to_queue(*m_command_pool, queue, [&](const
-  // CommandBuffer &cmd) {
-  //   vkCmdPipelineBarrier(cmd.get_handle(), VK_,
-  //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr,
-  //                        0, nullptr, 1, &image_memory_barrier);
-  // });
 }
 
 void Renderer::create_command_pool() {
@@ -214,10 +195,9 @@ void Renderer::draw() {
   image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
   image_memory_barrier.image = m_storage_image->get_handle();
 
-  vkCmdPipelineBarrier(m_command_buffers[m_current_frame].get_handle(),
-                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,
-                       nullptr, 1, &image_memory_barrier);
+  m_command_buffers[m_current_frame].pipeline_barrier(
+      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
+      {}, {}, {image_memory_barrier});
 
   // transition swapchain image layout
   auto &swapchain_image = m_swapchain->get_images()[m_current_frame];
@@ -227,10 +207,9 @@ void Renderer::draw() {
   image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
   image_memory_barrier.image = swapchain_image.get_handle();
 
-  vkCmdPipelineBarrier(m_command_buffers[m_current_frame].get_handle(),
-                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,
-                       nullptr, 1, &image_memory_barrier);
+  m_command_buffers[m_current_frame].pipeline_barrier(
+      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
+      {}, {}, {image_memory_barrier});
 
   // copy storage image to swapchain image
   VkImageCopy image_copy{};
@@ -242,11 +221,9 @@ void Renderer::draw() {
   image_copy.extent.height = HEIGHT;
   image_copy.extent.depth = 1;
 
-  vkCmdCopyImage(m_command_buffers[m_current_frame].get_handle(),
-                 m_storage_image->get_handle(),
-                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchain_image.get_handle(),
-                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &image_copy);
-
+  m_command_buffers[m_current_frame].copy_image(*m_storage_image,
+                                                swapchain_image, {image_copy});
+                                                
   // transition swapchain image layout
   image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
   image_memory_barrier.dstAccessMask = 0;
@@ -254,10 +231,9 @@ void Renderer::draw() {
   image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
   image_memory_barrier.image = swapchain_image.get_handle();
 
-  vkCmdPipelineBarrier(m_command_buffers[m_current_frame].get_handle(),
-                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,
-                       nullptr, 1, &image_memory_barrier);
+  m_command_buffers[m_current_frame].pipeline_barrier(
+      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
+      {}, {}, {image_memory_barrier});
 
   // transition storage image layout
   image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
@@ -266,10 +242,9 @@ void Renderer::draw() {
   image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
   image_memory_barrier.image = m_storage_image->get_handle();
 
-  vkCmdPipelineBarrier(m_command_buffers[m_current_frame].get_handle(),
-                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,
-                       nullptr, 1, &image_memory_barrier);
+  m_command_buffers[m_current_frame].pipeline_barrier(
+      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
+      {}, {}, {image_memory_barrier});
 
   m_command_buffers[m_current_frame].end();
 

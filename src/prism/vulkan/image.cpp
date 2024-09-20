@@ -188,33 +188,30 @@ void Image::upload(const CommandPool &command_pool, const void *data, VkDeviceSi
 	auto queue_family_index = m_device.get_physical_device().get_queue_family_index(VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT);
   const auto &queue = m_device.get_queue(queue_family_index, 0);
 	utils::submit_commands_to_queue(command_pool, queue, [&](const CommandBuffer &cmd_buffer) {
-		vkCmdPipelineBarrier(cmd_buffer.get_handle(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+		cmd_buffer.pipeline_barrier(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, {}, {}, {barrier});
 	});
 
-	VkImageSubresourceLayers subresource{};
-	subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	subresource.mipLevel = 0;
-	subresource.baseArrayLayer = 0;
-	subresource.layerCount = 1;
-
-	VkBufferImageCopy region{};
-	region.bufferOffset = 0;
-	region.bufferRowLength = 0;
-	region.bufferImageHeight = 0;
-	region.imageSubresource = subresource;
-	region.imageOffset = {0, 0, 0};
-	region.imageExtent = m_info.extent;
-
 	utils::submit_commands_to_queue(command_pool, queue, [&](const CommandBuffer &cmd_buffer) {
-		vkCmdCopyBufferToImage(cmd_buffer.get_handle(), stage_buffer.get_handle(), m_handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+		
+		VkBufferImageCopy region{};
+		region.bufferOffset = 0;
+		region.bufferRowLength = 0;
+		region.bufferImageHeight = 0;
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel = 0;
+		region.imageSubresource.baseArrayLayer = 0;
+		region.imageSubresource.layerCount = m_info.arrayLayers;
+		region.imageOffset = {0, 0, 0};
+		region.imageExtent = m_info.extent;
+
+		cmd_buffer.copy_buffer_to_image(stage_buffer, *this, {region});
 	});
 
 	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 	barrier.newLayout = target_layout;
 	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 	barrier.dstAccessMask = 0;
-
-	utils::submit_commands_to_queue(command_pool, queue, [&](const CommandBuffer &cmd_buffer) {
-		vkCmdPipelineBarrier(cmd_buffer.get_handle(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+	utils::submit_commands_to_queue(command_pool, queue, [&](const CommandBuffer &cmd_buffer) {	
+		cmd_buffer.pipeline_barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, {}, {}, {barrier});
 	});
 }

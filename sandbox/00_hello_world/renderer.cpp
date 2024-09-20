@@ -3,6 +3,7 @@
 #include "stb_image_write.h"
 
 #include "prism/vulkan/device_features.h"
+#include "prism/vulkan/utils.h"
 
 static constexpr uint32_t WIDTH = 800;
 static constexpr uint32_t HEIGHT = 600;
@@ -10,8 +11,7 @@ static constexpr uint32_t CHANNEl = 3;
 using value_type = float;
 static value_type fill_value = 0.5f;
 
-Renderer::Renderer()
-{
+Renderer::Renderer() {
   create_instance();
   create_device();
   create_framebuffer();
@@ -20,17 +20,15 @@ Renderer::Renderer()
 }
 
 void Renderer::render() {
-  m_command_buffer->begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-  vkCmdFillBuffer(m_command_buffer->get_handle(), m_framebuffer->get_handle(),
-                  0, WIDTH * HEIGHT * CHANNEl * sizeof(value_type),
-                  *reinterpret_cast<uint32_t *>(&fill_value));
-
-  m_command_buffer->end();
-
-  auto &queue = m_device->get_queue(m_queue_family_index, 0);
-  queue.submit(*m_command_buffer);
-  queue.wait_idle();
+  auto queue_family_index = m_device->get_physical_device().get_queue_family_index(VK_QUEUE_TRANSFER_BIT);
+  const auto &queue = m_device->get_queue(queue_family_index, 0);
+  utils::submit_commands_to_queue(
+      *m_command_pool, queue, [&](const CommandBuffer &cmd_buffer) {
+        cmd_buffer.fill_buffer(*m_framebuffer, 0,
+                               WIDTH * HEIGHT * CHANNEl * sizeof(value_type),
+                               *reinterpret_cast<uint32_t *>(&fill_value));
+      });
 }
 
 void Renderer::save(const std::string &path) {

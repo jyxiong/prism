@@ -62,10 +62,8 @@ void Buffer::upload(const CommandPool& cmd_pool, const void *data, VkDeviceSize 
   auto &queue = m_device.get_queue(queue_family_index, 0);
 
   utils::submit_commands_to_queue(cmd_pool, queue, [&](const CommandBuffer &cmd_buffer) {
-    VkBufferCopy copy_region = {};
-    copy_region.srcOffset = 0;
-    copy_region.dstOffset = 0;
+    VkBufferCopy copy_region{};
     copy_region.size = size;
-    vkCmdCopyBuffer(cmd_buffer.get_handle(), stage_buffer.get_handle(), m_handle, 1, &copy_region); 
+    cmd_buffer.copy_buffer(stage_buffer, *this, {copy_region});
   });
 }
