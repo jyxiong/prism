@@ -37,9 +37,9 @@ namespace prism
   class Image
   {
   public:
-    Image(const Device &device, VkImage handle);
+    Image(const Device &device, const ImageCreateInfo &info, VkImage handle);
 
-    Image(const Device &device, const ImageCreateInfo &create_info);
+    Image(const Device &device, const ImageCreateInfo &info);
 
     Image(const Image &) = delete;
 
@@ -65,9 +65,11 @@ namespace prism
 
     const VkMemoryRequirements &get_memory_requirements() const;
 
-    void bind(const DeviceMemory& memory, VkDeviceSize offset = 0);
+    void bind(const DeviceMemory& memory, VkDeviceSize offset = 0) const;
 
-    void upload(const CommandPool &command_pool, const void *data, VkDeviceSize size, VkImageLayout target_layout = VK_IMAGE_LAYOUT_GENERAL);
+    void upload(const CommandPool &command_pool, const void *data, VkDeviceSize size, VkImageLayout target_layout = VK_IMAGE_LAYOUT_GENERAL) const;
+
+    void download(const CommandPool &command_pool, void *data, VkDeviceSize size, VkImageLayout target_layout = VK_IMAGE_LAYOUT_GENERAL) const;
 
   protected:
     const Device &m_device;

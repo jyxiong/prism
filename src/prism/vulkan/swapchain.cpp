@@ -23,8 +23,8 @@ VkExtent2D choose_extent(VkExtent2D required, const VkSurfaceCapabilitiesKHR &ca
 
 uint32_t choose_image_count(uint32_t required, const VkSurfaceCapabilitiesKHR &capabilities);
 
-SwapchainImage::SwapchainImage(const Device &device, VkImage handle)
-    : Image(device, handle)
+SwapchainImage::SwapchainImage(const Device &device, const ImageCreateInfo& info, VkImage handle)
+    : Image(device, info, handle)
 {
 }
 
@@ -59,29 +59,35 @@ Swapchain::Swapchain(const Device &device, const Surface &surface, const Propert
 
   m_properties.image_count = choose_image_count(required.image_count, support_details.capabilities);
 
-  VkSwapchainCreateInfoKHR create_info{};
-  create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-  create_info.surface = surface.get_handle();
-  create_info.imageFormat = m_properties.surface_format.format;
-  create_info.imageColorSpace = m_properties.surface_format.colorSpace;
-  create_info.presentMode = m_properties.present_mode;
-  create_info.imageExtent = m_properties.extent;
-  create_info.minImageCount = m_properties.image_count;
-  create_info.imageUsage = m_properties.image_usage;
+  VkSwapchainCreateInfoKHR ci{};
+  ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+  ci.surface = surface.get_handle();
+  ci.imageFormat = m_properties.surface_format.format;
+  ci.imageColorSpace = m_properties.surface_format.colorSpace;
+  ci.presentMode = m_properties.present_mode;
+  ci.imageExtent = m_properties.extent;
+  ci.minImageCount = m_properties.image_count;
+  ci.imageUsage = m_properties.image_usage;
 
-  create_info.oldSwapchain = old_swapchain.has_value() ? old_swapchain->get_handle() : VK_NULL_HANDLE;
-  create_info.preTransform = support_details.capabilities.currentTransform;
-  create_info.imageArrayLayers = 1;
-  create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-  create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-  create_info.clipped = VK_TRUE;
+  ci.oldSwapchain = old_swapchain.has_value() ? old_swapchain->get_handle() : VK_NULL_HANDLE;
+  ci.preTransform = support_details.capabilities.currentTransform;
+  ci.imageArrayLayers = 1;
+  ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  ci.clipped = VK_TRUE;
 
-  VK_CHECK(vkCreateSwapchainKHR(device.get_handle(), &create_info, nullptr, &m_handle));
+  VK_CHECK(vkCreateSwapchainKHR(device.get_handle(), &ci, nullptr, &m_handle));
 
   unsigned int image_count;
   VK_CHECK(vkGetSwapchainImagesKHR(m_device.get_handle(), m_handle, &image_count, nullptr));
   std::vector<VkImage> vk_images(image_count);
   VK_CHECK(vkGetSwapchainImagesKHR(m_device.get_handle(), m_handle, &image_count, vk_images.data()));
+
+  ImageCreateInfo image_ci{};
+  image_ci.set_image_type(VK_IMAGE_TYPE_2D)
+          .set_format(m_properties.surface_format.format)
+          .set_extent({m_properties.extent.width, m_properties.extent.height, 1})
+          .set_usage(m_properties.image_usage);
 
   ImageViewCreateInfo image_view_ci{};
   image_view_ci.set_view_type(VK_IMAGE_VIEW_TYPE_2D)
@@ -92,7 +98,7 @@ Swapchain::Swapchain(const Device &device, const Surface &surface, const Propert
 
   for (auto &vk_image : vk_images)
   {
-    m_images.emplace_back(m_device, vk_image);
+    m_images.emplace_back(m_device, image_ci, vk_image);
 
     image_view_ci.image = vk_image;
     m_image_views.emplace_back(m_images.back(), image_view_ci);

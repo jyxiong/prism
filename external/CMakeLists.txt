@@ -21,6 +21,7 @@ endif ()
 
 if (NOT TARGET glslang)
     option(ENABLE_SPVREMAPPER OFF)
+    option(ENABLE_GLSLANG_BINARIES ON)
     option(ENABLE_HLSL OFF)
     option(ENABLE_OPT OFF)
     option(BUILD_TESTING OFF)

@@ -13,7 +13,7 @@ namespace prism
   class SwapchainImage : public Image
   {
     public:
-      SwapchainImage(const Device &device, VkImage handle);
+      SwapchainImage(const Device &device, const ImageCreateInfo& info, VkImage handle);
 
       SwapchainImage(const SwapchainImage &) = delete;
 

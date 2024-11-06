@@ -19,7 +19,9 @@ namespace prism
 
     DeviceMemory& operator=(DeviceMemory&&) = delete;
 
-    void copy(VkDeviceSize offset, VkDeviceSize size, const void* src_data);
+    void upload(VkDeviceSize offset, VkDeviceSize size, const void* src_data);
+    
+    void download(VkDeviceSize offset, VkDeviceSize size, void* dst_data);
 
     void map(VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void** ppData);
 

@@ -7,6 +7,7 @@ namespace prism
   class Buffer;
   class Image;
   class CommandPool;
+  class ComputePipeline;
 
   class CommandBuffer
   {
@@ -44,6 +45,13 @@ namespace prism
                           const std::vector<VkMemoryBarrier> &memory_barriers,
                           const std::vector<VkBufferMemoryBarrier> &buffer_memory_barriers,
                           const std::vector<VkImageMemoryBarrier> &image_memory_barriers) const;
+
+    void bind_pipeline(const ComputePipeline &pipeline) const;
+
+    void bind_descriptor_set(const VkPipelineBindPoint bind_point, const VkPipelineLayout layout, const VkDescriptorSet descriptor_set) const;
+
+    void dispatch(uint32_t group_count_x, uint32_t group_count_y, uint32_t group_count_z) const;
+
 
   private:
     VkCommandBuffer m_handle;

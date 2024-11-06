@@ -55,10 +55,18 @@ DeviceMemory::~DeviceMemory()
     }
 }
 
-void DeviceMemory::copy(VkDeviceSize offset, VkDeviceSize size, const void *src_data)
+void DeviceMemory::upload(VkDeviceSize offset, VkDeviceSize size, const void *src_data)
 {
     void *dst_data;
     map(offset, size, 0, &dst_data);
+    std::memcpy(dst_data, src_data, size);
+    unmap();
+}
+
+void DeviceMemory::download(VkDeviceSize offset, VkDeviceSize size, void *dst_data)
+{
+    void *src_data;
+    map(offset, size, 0, &src_data);
     std::memcpy(dst_data, src_data, size);
     unmap();
 }

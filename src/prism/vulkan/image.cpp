@@ -94,13 +94,13 @@ ImageCreateInfo& ImageCreateInfo::set_initial_layout(VkImageLayout initial_layou
 	return *this;
 }
 
-Image::Image(const Device &device, VkImage handle)
-		: m_device{device}, m_handle(handle)
+Image::Image(const Device &device, const ImageCreateInfo &info, VkImage handle)
+		: m_device(device), m_handle(handle), m_info(info)
 {
 }
 
 Image::Image(const Device &device, const ImageCreateInfo& info)
-		: m_device{device}, m_info(info)
+		: m_device(device), m_info(info)
 {
 	VK_CHECK(vkCreateImage(m_device.get_handle(), &m_info, nullptr, &m_handle));
 
@@ -158,17 +158,17 @@ const VkMemoryRequirements &Image::get_memory_requirements() const
 	return m_memory_requirements;
 }
 
-void Image::bind(const DeviceMemory& memory, VkDeviceSize offset)
+void Image::bind(const DeviceMemory& memory, VkDeviceSize offset) const
 {
 	VK_CHECK(vkBindImageMemory(m_device.get_handle(), m_handle, memory.get_handle(), offset));
 }
 
-void Image::upload(const CommandPool &command_pool, const void *data, VkDeviceSize size, VkImageLayout target_layout)
+void Image::upload(const CommandPool &command_pool, const void *src_data, VkDeviceSize size, VkImageLayout target_layout) const
 {
 	auto stage_buffer = Buffer(m_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 	auto stage_memory = DeviceMemory(m_device, stage_buffer.get_memory_requirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 	stage_buffer.bind(stage_memory);
-	stage_memory.copy(0, size, data);
+	stage_memory.upload(0, size, src_data);
 
 	VkImageMemoryBarrier barrier{};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -185,7 +185,7 @@ void Image::upload(const CommandPool &command_pool, const void *data, VkDeviceSi
 	barrier.srcAccessMask = 0;
 	barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-	auto queue_family_index = m_device.get_physical_device().get_queue_family_index(VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT);
+	auto queue_family_index = m_device.get_physical_device().get_queue_family_index(VK_QUEUE_TRANSFER_BIT);
   const auto &queue = m_device.get_queue(queue_family_index, 0);
 	utils::submit_commands_to_queue(command_pool, queue, [&](const CommandBuffer &cmd_buffer) {
 		cmd_buffer.pipeline_barrier(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, {}, {}, {barrier});
@@ -214,4 +214,61 @@ void Image::upload(const CommandPool &command_pool, const void *data, VkDeviceSi
 	utils::submit_commands_to_queue(command_pool, queue, [&](const CommandBuffer &cmd_buffer) {	
 		cmd_buffer.pipeline_barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, {}, {}, {barrier});
 	});
+}
+
+void Image::download(const CommandPool &command_pool, void *dst_data, VkDeviceSize size, VkImageLayout target_layout) const
+{
+	auto stage_buffer = Buffer(m_device, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	auto stage_memory = DeviceMemory(m_device, stage_buffer.get_memory_requirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+	stage_buffer.bind(stage_memory);
+	
+	VkImageMemoryBarrier barrier{};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = m_handle;
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = m_info.mipLevels;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = m_info.arrayLayers;
+	barrier.srcAccessMask = 0;
+	barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+	auto queue_family_index = m_device.get_physical_device().get_queue_family_index(VK_QUEUE_TRANSFER_BIT);
+  const auto &queue = m_device.get_queue(queue_family_index, 0);
+	utils::submit_commands_to_queue(command_pool, queue, [&](const CommandBuffer &cmd_buffer) {
+		vkCmdPipelineBarrier(cmd_buffer.get_handle(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+	});
+
+	VkImageSubresourceLayers subresource{};
+	subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	subresource.mipLevel = 0;
+	subresource.baseArrayLayer = 0;
+	subresource.layerCount = 1;
+
+	VkBufferImageCopy region{};
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
+	region.imageSubresource = subresource;
+	region.imageOffset = {0, 0, 0};
+	region.imageExtent = m_info.extent;
+
+	utils::submit_commands_to_queue(command_pool, queue, [&](const CommandBuffer &cmd_buffer) {
+		vkCmdCopyImageToBuffer(cmd_buffer.get_handle(), m_handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stage_buffer.get_handle(), 1, &region);
+	});
+
+	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	barrier.newLayout = target_layout;
+	barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+	barrier.dstAccessMask = 0;
+
+	utils::submit_commands_to_queue(command_pool, queue, [&](const CommandBuffer &cmd_buffer) {
+		vkCmdPipelineBarrier(cmd_buffer.get_handle(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+	});
+
+	stage_memory.download(0, size, dst_data);
 }

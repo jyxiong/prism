@@ -1,35 +1,15 @@
-# 添加glslangValidator
 add_executable(glslang::validator IMPORTED)
 find_program(GLSLANG_VALIDATOR "glslangValidator" HINTS $ENV{VULKAN_SDK}/bin REQUIRED)
 set_property(TARGET glslang::validator PROPERTY IMPORTED_LOCATION ${GLSLANG_VALIDATOR})
 
-# 添加自定义函数，用于编译shader
-function(add_shaders_target SHADER_TARGET)
-
-    # 解析参数
-    # SHADER_CHAPTER_NAME
-    # SHADER_SOURCES
-    cmake_parse_arguments("SHADER" "" "CHAPTER_NAME" "SOURCES" ${ARGN})
-
-    set(SHADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/${SHADER_CHAPTER_NAME}/shaders)
-
-    # 创建shader目录
+macro(compile_glsl GLSL_SHADER SPV_SHADER SPV_SHADERS)
     add_custom_command(
-        OUTPUT ${SHADERS_DIR}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADERS_DIR}
-    )
-
-    # 编译shader
-    add_custom_command(
-        OUTPUT ${SHADERS_DIR}/frag.spv ${SHADERS_DIR}/vert.spv
+        OUTPUT ${SPV_SHADER}
         COMMAND glslang::validator
-        ARGS --target-env vulkan1.0 ${SHADER_SOURCES} --quiet
-        WORKING_DIRECTORY ${SHADERS_DIR}
-        DEPENDS ${SHADER_SOURCES}
-        COMMENT "Compiling Shaders"
-        VERBATIM
+        ARGS ${GLSL_SHADER} --target-env vulkan1.3 -o ${SPV_SHADER} 
+        MAIN_DEPENDENCY ${GLSL_SHADER}
+        WORKING_DIRECTORY ${CMAKE_SHADERS_OUTPUT_DIRECTORY}
+        COMMENT "Compiling shader: ${GLSL_SHADER}"
     )
-    # 添加自定义目标
-    add_custom_target(${SHADER_TARGET} DEPENDS ${SHADERS_DIR}/frag.spv ${SHADERS_DIR}/vert.spv)
-
-endfunction()
+    list(APPEND ${SPV_SHADERS} ${SPV_SHADER})
+endmacro()

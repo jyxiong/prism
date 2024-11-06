@@ -56,7 +56,7 @@ void Buffer::upload(const CommandPool& cmd_pool, const void *data, VkDeviceSize 
   auto stage_buffer = Buffer(m_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
   auto stage_memory = DeviceMemory(m_device, stage_buffer.get_memory_requirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
   stage_buffer.bind(stage_memory);
-  stage_memory.copy(0, size, data);
+  stage_memory.upload(0, size, data);
 
   auto queue_family_index = m_device.get_physical_device().get_queue_family_index(VK_QUEUE_GRAPHICS_BIT);
   auto &queue = m_device.get_queue(queue_family_index, 0);

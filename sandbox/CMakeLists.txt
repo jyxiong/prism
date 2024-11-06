@@ -1,2 +1,3 @@
 add_subdirectory(00_hello_world)
 add_subdirectory(01_offscreen)
+add_subdirectory(02_compute_pipeline)

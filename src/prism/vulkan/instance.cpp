@@ -86,7 +86,7 @@ const PhysicalDevice& Instance::pick_physical_device() const
 
   // FIXME: Should we return the first physical device if no discrete GPU found?
   LOG_ERROR("No discrete GPU found");
-  return PhysicalDevice{VK_NULL_HANDLE};
+  return *m_physical_devices.front();
 }
 
 bool Instance::check_layer_support(const std::vector<std::string> &reqiured_layers)

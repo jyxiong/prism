@@ -2,8 +2,10 @@
 
 #include "prism/vulkan/buffer.h"
 #include "prism/vulkan/command_pool.h"
+#include "prism/vulkan/compute_pipeline.h"
 #include "prism/vulkan/error.h"
 #include "prism/vulkan/image.h"
+
 
 using namespace prism;
 
@@ -88,4 +90,21 @@ void CommandBuffer::pipeline_barrier(
       memory_barriers.data(), buffer_memory_barriers.size(),
       buffer_memory_barriers.data(), image_memory_barriers.size(),
       image_memory_barriers.data());
+}
+
+void CommandBuffer::bind_pipeline(const ComputePipeline &pipeline) const {
+  vkCmdBindPipeline(m_handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                    pipeline.get_handle());
+}
+
+void CommandBuffer::bind_descriptor_set(const VkPipelineBindPoint bind_point,
+                                        const VkPipelineLayout layout,
+                                        const VkDescriptorSet descriptor_set) const {
+  vkCmdBindDescriptorSets(m_handle, bind_point, layout, 0, 1, &descriptor_set,
+                          0, nullptr);
+}
+
+void CommandBuffer::dispatch(uint32_t group_count_x, uint32_t group_count_y,
+                             uint32_t group_count_z) const {
+  vkCmdDispatch(m_handle, group_count_x, group_count_y, group_count_z);
 }
