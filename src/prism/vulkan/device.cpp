@@ -1,6 +1,7 @@
 #include "prism/vulkan/device.h"
 
 #include "prism/vulkan/error.h"
+#include "prism/vulkan/utils.h"
 
 using namespace prism;
 
@@ -24,14 +25,14 @@ Device::Device(const PhysicalDevice &physical_device, const ExtensionNames &exte
     queue_info.pQueuePriorities = queue_priorities[queue_family_index].data();
   }
 
-  assert(check_extension_support(extensions));
+  assert(utils::check_extensions_support(extensions, m_physical_device.get_extensions()));
 
   VkDeviceCreateInfo device_info{};
   device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   device_info.queueCreateInfoCount = queue_infos.size();
   device_info.pQueueCreateInfos = queue_infos.data();
-  device_info.enabledExtensionCount = m_extensions.size();
-  device_info.ppEnabledExtensionNames = m_extensions.data();
+  device_info.enabledExtensionCount = extensions.size();
+  device_info.ppEnabledExtensionNames = extensions.data();
   device_info.pQueueCreateInfos = queue_infos.data();
   device_info.queueCreateInfoCount = queue_infos.size();
   device_info.pEnabledFeatures = nullptr;
@@ -83,28 +84,6 @@ const DeviceExtensionFunctions &Device::get_extension_functions() const
   return *m_extension_functions;
 }
 
-bool Device::check_extension_enable(const std::string &extension) const
-{
-  return std::find(m_extensions.begin(), m_extensions.end(), extension.c_str()) != m_extensions.end();
-}
-
-bool Device::check_extension_support(const std::vector<std::string> &reqiured_extensions)
-{
-  for (const auto &reqiured_extension : reqiured_extensions)
-  {
-    if (m_physical_device.check_extension(reqiured_extension))
-    {
-      m_extensions.push_back(reqiured_extension.c_str());
-    }
-    else
-    {
-      LOG_WARN("Required device extension not found: {}", reqiured_extension);
-      return false;
-    }
-  }
-
-  return true;
-}
 
 void Device::wait_idle() const
 {

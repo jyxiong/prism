@@ -63,13 +63,17 @@ namespace prism
 
     uint32_t get_array_layer_count() const;
 
+    const VkExtent3D &get_extent() const;
+
     const VkMemoryRequirements &get_memory_requirements() const;
 
-    void bind(const DeviceMemory& memory, VkDeviceSize offset = 0) const;
+    void bind_memory(const DeviceMemory& memory, VkDeviceSize offset = 0) const;
 
     void upload(const CommandPool &command_pool, const void *data, VkDeviceSize size, VkImageLayout target_layout = VK_IMAGE_LAYOUT_GENERAL) const;
 
     void download(const CommandPool &command_pool, void *data, VkDeviceSize size, VkImageLayout target_layout = VK_IMAGE_LAYOUT_GENERAL) const;
+
+    void set_layout(const CommandBuffer &cmd_buffer, VkImageLayout new_layout, VkImageSubresourceRange subresource_range);
 
   protected:
     const Device &m_device;
@@ -79,5 +83,7 @@ namespace prism
     ImageCreateInfo m_info;
 
     VkMemoryRequirements m_memory_requirements;
+
+    VkImageLayout m_layout;
   };
 } // namespace prism

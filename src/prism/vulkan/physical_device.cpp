@@ -45,6 +45,11 @@ const std::vector<VkQueueFamilyProperties> &PhysicalDevice::get_queue_family_pro
   return m_queue_family_properties;
 }
 
+const std::vector<VkExtensionProperties> &PhysicalDevice::get_extensions() const
+{
+  return m_extensions;
+}
+
 VkFormatProperties PhysicalDevice::get_format_properties(VkFormat format) const
 {
   VkFormatProperties format_properties;
@@ -78,12 +83,4 @@ uint32_t PhysicalDevice::get_queue_family_index(VkQueueFlags flags) const
   }
 
   throw std::runtime_error("Could not find a matching queue family index");
-}
-
-bool PhysicalDevice::check_extension(const std::string &extension) const
-{
-  auto found = std::find_if(m_extensions.begin(), m_extensions.end(), [&](const VkExtensionProperties &extension_properties)
-                            { return strcmp(extension_properties.extensionName, extension.c_str()) == 0; });
-
-  return found != m_extensions.end();
 }

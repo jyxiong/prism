@@ -1,6 +1,7 @@
 #include "prism/vulkan/instance.h"
 
 #include "prism/vulkan/error.h"
+#include "prism/vulkan/utils.h"
 
 using namespace prism;
 
@@ -37,16 +38,25 @@ Instance::Instance(const ExtensionNames &extensions, const LayerNames& layers)
   app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
   app_info.apiVersion = VK_MAKE_API_VERSION(1, 3, 0, 0);
 
-  assert(check_layer_support(layers));
-  assert(check_extension_support(extensions));
+  uint32_t available_layers_count = 0;
+  vkEnumerateInstanceLayerProperties(&available_layers_count, nullptr);
+  std::vector<VkLayerProperties> available_layers(available_layers_count);
+  vkEnumerateInstanceLayerProperties(&available_layers_count, available_layers.data());
+  assert(utils::check_layers_support(layers, available_layers));
+  
+  uint32_t available_extensions_count = 0;
+  vkEnumerateInstanceExtensionProperties(nullptr, &available_extensions_count, nullptr);
+  std::vector<VkExtensionProperties> available_extensions(available_extensions_count);
+  vkEnumerateInstanceExtensionProperties(nullptr, &available_extensions_count, available_extensions.data());
+  assert(utils::check_extensions_support(extensions, available_extensions));
 
   VkInstanceCreateInfo instance_info{};
   instance_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   instance_info.pApplicationInfo = &app_info;
-  instance_info.enabledLayerCount = static_cast<uint32_t>(m_layers.size());
-  instance_info.ppEnabledLayerNames = m_layers.data();
-  instance_info.enabledExtensionCount = static_cast<uint32_t>(m_extensions.size());
-  instance_info.ppEnabledExtensionNames = m_extensions.data();
+  instance_info.enabledLayerCount = static_cast<uint32_t>(layers.size());
+  instance_info.ppEnabledLayerNames = layers.data();
+  instance_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+  instance_info.ppEnabledExtensionNames = extensions.data();
 
   VK_CHECK(vkCreateInstance(&instance_info, nullptr, &m_handle));
 
@@ -87,56 +97,6 @@ const PhysicalDevice& Instance::pick_physical_device() const
   // FIXME: Should we return the first physical device if no discrete GPU found?
   LOG_ERROR("No discrete GPU found");
   return *m_physical_devices.front();
-}
-
-bool Instance::check_layer_support(const std::vector<std::string> &reqiured_layers)
-{
-  uint32_t count = 0;
-  vkEnumerateInstanceLayerProperties(&count, nullptr);
-  std::vector<VkLayerProperties> available_layers(count);
-  vkEnumerateInstanceLayerProperties(&count, available_layers.data());
-
-  for (const auto &reqiured_layer : reqiured_layers)
-  {
-    auto found = std::find_if(available_layers.begin(), available_layers.end(), [&](const VkLayerProperties &layer)
-                              { return strcmp(layer.layerName, reqiured_layer.c_str()) == 0; });
-    if (found != available_layers.end())
-    {
-      m_layers.push_back(reqiured_layer.c_str());
-    }
-    else
-    {
-      LOG_ERROR("Required instance layer not found: {}", reqiured_layer);
-      return false;
-    }
-  }
-
-  return true;
-}
-
-bool Instance::check_extension_support(const std::vector<std::string> &reqiured_extensions)
-{
-  uint32_t count = 0;
-  vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
-  std::vector<VkExtensionProperties> available_extensions(count);
-  vkEnumerateInstanceExtensionProperties(nullptr, &count, available_extensions.data());
-
-  for (const auto &reqiured_extension : reqiured_extensions)
-  {
-    auto found = std::find_if(available_extensions.begin(), available_extensions.end(), [&](const VkExtensionProperties &extension)
-                              { return strcmp(extension.extensionName, reqiured_extension.c_str()) == 0; });
-    if (found != available_extensions.end())
-    {
-      m_extensions.push_back(reqiured_extension.c_str());
-    }
-    else
-    {
-      LOG_ERROR("Required instance extension not found: {}", reqiured_extension);
-      return false;
-    }
-  }
-
-  return true;
 }
 
 void Instance::query_physical_devices()

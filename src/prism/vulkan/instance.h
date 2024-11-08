@@ -8,8 +8,8 @@ namespace prism
   class Instance
   {
   public:
-    using ExtensionNames = std::vector<std::string>;
-    using LayerNames = std::vector<std::string>;
+    using ExtensionNames = std::vector<const char*>;
+    using LayerNames = std::vector<const char*>;
 
   public:
     Instance(const ExtensionNames &extensions, const LayerNames& layers);
@@ -29,17 +29,11 @@ namespace prism
     const PhysicalDevice& pick_physical_device() const;
 
   private:
-    bool check_extension_support(const std::vector<std::string> &layers);
-    bool check_layer_support(const std::vector<std::string> &extensions);
     void query_physical_devices();
     void create_debug_messenger();
 
   private:
     VkInstance m_handle{VK_NULL_HANDLE};
-
-    std::vector<const char *> m_layers{};
-
-    std::vector<const char *> m_extensions{};
 
     std::vector<std::unique_ptr<PhysicalDevice>> m_physical_devices{};
 

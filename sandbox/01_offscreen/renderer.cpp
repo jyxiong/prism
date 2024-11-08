@@ -103,17 +103,10 @@ void Renderer::create_render_target() {
       .set_image_type(VK_IMAGE_TYPE_2D)
       .set_format(VK_FORMAT_R8G8B8A8_UNORM)
       .set_usage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-  m_storage_image = std::make_unique<Image>(*m_device, image_ci);
-
-  m_storage_memory = std::make_unique<DeviceMemory>(
-      *m_device, m_storage_image->get_memory_requirements(),
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-  m_storage_image->bind(*m_storage_memory);
-
   ImageViewCreateInfo image_view_ci{};
   image_view_ci.set_view_type(VK_IMAGE_VIEW_TYPE_2D);
-  m_storage_image_view =
-      std::make_unique<ImageView>(*m_storage_image, image_view_ci);
+
+  m_storage_data = std::make_unique<ImageData>(*m_device, image_ci, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image_view_ci);
 }
 
 void Renderer::create_command_pool() {
@@ -168,7 +161,7 @@ void Renderer::draw() {
 
   // darw to storage image
   auto draw_to_storage_image = [&](const std::vector<glm::u8vec4> &data) {
-    m_storage_image->upload(*m_command_pool, data.data(),
+    m_storage_data->upload(*m_command_pool, data.data(),
                             data.size() * sizeof(glm::u8vec4));
   };
 
@@ -193,7 +186,7 @@ void Renderer::draw() {
   image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
   image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-  image_memory_barrier.image = m_storage_image->get_handle();
+  image_memory_barrier.image = m_storage_data->image->get_handle();
 
   m_command_buffers[m_current_frame].pipeline_barrier(
       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
@@ -221,7 +214,7 @@ void Renderer::draw() {
   image_copy.extent.height = HEIGHT;
   image_copy.extent.depth = 1;
 
-  m_command_buffers[m_current_frame].copy_image(*m_storage_image,
+  m_command_buffers[m_current_frame].copy_image(*m_storage_data->image,
                                                 swapchain_image, {image_copy});
                                                 
   // transition swapchain image layout
@@ -240,7 +233,7 @@ void Renderer::draw() {
   image_memory_barrier.dstAccessMask = 0;
   image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
   image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-  image_memory_barrier.image = m_storage_image->get_handle();
+  image_memory_barrier.image = m_storage_data->image->get_handle();
 
   m_command_buffers[m_current_frame].pipeline_barrier(
       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
@@ -301,9 +294,7 @@ void Renderer::draw() {
 void Renderer::recreate_swapchain() {
   m_device->wait_idle();
   m_swapchain.reset();
-  m_storage_image.reset();
-  m_storage_memory.reset();
-  m_storage_image_view.reset();
+  m_storage_data.reset();
 
   create_swapchain();
   create_render_target();

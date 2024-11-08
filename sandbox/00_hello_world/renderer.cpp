@@ -25,7 +25,7 @@ void Renderer::render() {
   const auto &queue = m_device->get_queue(queue_family_index, 0);
   utils::submit_commands_to_queue(
       *m_command_pool, queue, [&](const CommandBuffer &cmd_buffer) {
-        cmd_buffer.fill_buffer(*m_framebuffer, 0,
+        cmd_buffer.fill_buffer(*m_framebuffer->buffer, 0,
                                WIDTH * HEIGHT * CHANNEl * sizeof(value_type),
                                *reinterpret_cast<uint32_t *>(&fill_value));
       });
@@ -34,12 +34,12 @@ void Renderer::render() {
 void Renderer::save(const std::string &path) {
 
   value_type *data;
-  m_framebuffer_memory->map(0, WIDTH * HEIGHT * CHANNEl * sizeof(value_type), 0,
+  m_framebuffer->device_memory->map(0, WIDTH * HEIGHT * CHANNEl * sizeof(value_type), 0,
                             reinterpret_cast<void **>(&data));
 
   stbi_write_hdr(path.c_str(), WIDTH, HEIGHT, CHANNEl, data);
 
-  m_framebuffer_memory->unmap();
+  m_framebuffer->device_memory->unmap();
 }
 
 void Renderer::create_instance() {
@@ -70,13 +70,9 @@ void Renderer::create_device() {
 }
 
 void Renderer::create_framebuffer() {
-  m_framebuffer = std::make_unique<Buffer>(
+  m_framebuffer = std::make_unique<BufferData>(
       *m_device, WIDTH * HEIGHT * CHANNEl * sizeof(value_type),
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-  auto memory_requirements = m_framebuffer->get_memory_requirements();
-  m_framebuffer_memory = std::make_unique<DeviceMemory>(
-      *m_device, memory_requirements, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-  m_framebuffer->bind(*m_framebuffer_memory);
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 }
 
 void Renderer::create_command_pool() {

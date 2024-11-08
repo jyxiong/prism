@@ -10,7 +10,7 @@ namespace prism
   class Device
   {
   public:
-    using ExtensionNames = std::vector<std::string>;
+    using ExtensionNames = std::vector<const char*>;
 
   public:
     Device(const PhysicalDevice &physical_device, const ExtensionNames &extensions, const DeviceFeatures &features);
@@ -33,19 +33,12 @@ namespace prism
 
     const DeviceExtensionFunctions &get_extension_functions() const;
 
-    bool check_extension_enable(const std::string &extension) const;
-
     void wait_idle() const;
-
-  private:
-    bool check_extension_support(const std::vector<std::string> &extensions);
 
   private:
     const PhysicalDevice &m_physical_device;
 
     VkDevice m_handle;
-
-    std::vector<const char *> m_extensions;
 
     std::vector<std::vector<Queue>> m_queues;
 

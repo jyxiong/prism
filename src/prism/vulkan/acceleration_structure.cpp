@@ -47,7 +47,7 @@ AccelerationStructure::AccelerationStructure(const Device &device, VkAcceleratio
       build_sizes_info.accelerationStructureSize,
       VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
   m_memory = std::make_unique<DeviceMemory>(device, m_buffer->get_memory_requirements(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT);
-  m_buffer->bind(*m_memory);
+  m_buffer->bind_memory(*m_memory);
 
   VkAccelerationStructureCreateInfoKHR create_info = {};
   create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
@@ -75,7 +75,7 @@ AccelerationStructure::AccelerationStructure(const Device &device, VkAcceleratio
             build_sizes_info.buildScratchSize,
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
         m_scratch_memory = std::make_unique<DeviceMemory>(device, m_scratch_buffer->get_memory_requirements(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT);
-        m_scratch_buffer->bind(*m_scratch_memory);
+        m_scratch_buffer->bind_memory(*m_scratch_memory);
 
         build_geometry_info.dstAccelerationStructure = m_handle;
         build_geometry_info.scratchData.deviceAddress = m_scratch_buffer->get_device_address();

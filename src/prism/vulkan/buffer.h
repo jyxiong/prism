@@ -15,13 +15,13 @@ namespace prism
 
     VkBuffer get_handle() const;
 
+    const Device &get_device() const;
+
     const VkMemoryRequirements &get_memory_requirements() const;
 
     VkDeviceAddress get_device_address() const;
 
-    void bind(const DeviceMemory &memory, VkDeviceSize offset = 0);
-
-    void upload(const CommandPool& cmd_pool, const void *data, VkDeviceSize size, VkDeviceSize offset = 0);
+    void bind_memory(const DeviceMemory &memory, VkDeviceSize offset = 0);
 
   private:
     VkBuffer m_handle;

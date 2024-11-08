@@ -8,6 +8,62 @@
 
 using namespace prism;
 
+VkAccessFlags access_flags(VkImageLayout layout) {
+  switch (layout) {
+  case VK_IMAGE_LAYOUT_UNDEFINED:
+  case VK_IMAGE_LAYOUT_GENERAL:
+  case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+    return 0;
+  case VK_IMAGE_LAYOUT_PREINITIALIZED:
+    return VK_ACCESS_HOST_WRITE_BIT;
+  case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+    return VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+    return VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+           VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
+    return VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
+  case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+    return VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+  case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+    return VK_ACCESS_TRANSFER_READ_BIT;
+  case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+    return VK_ACCESS_TRANSFER_WRITE_BIT;
+  default:
+    assert(false);
+    return 0;
+  }
+}
+
+VkPipelineStageFlags pipeline_stage_flags(VkImageLayout layout) {
+  switch (layout) {
+  case VK_IMAGE_LAYOUT_UNDEFINED:
+    return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+  case VK_IMAGE_LAYOUT_GENERAL:
+  case VK_IMAGE_LAYOUT_PREINITIALIZED:
+    return VK_PIPELINE_STAGE_HOST_BIT;
+  case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+  case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+    return VK_PIPELINE_STAGE_TRANSFER_BIT;
+  case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+    return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+    return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+           VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+  case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
+    return VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+  case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+    return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
+           VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+    return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+  default:
+    assert(false);
+    return 0;
+  }
+}
+
 ImageCreateInfo::ImageCreateInfo()
 {
 	sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -95,12 +151,12 @@ ImageCreateInfo& ImageCreateInfo::set_initial_layout(VkImageLayout initial_layou
 }
 
 Image::Image(const Device &device, const ImageCreateInfo &info, VkImage handle)
-		: m_device(device), m_handle(handle), m_info(info)
+		: m_device(device), m_handle(handle), m_info(info), m_layout(info.initialLayout)
 {
 }
 
 Image::Image(const Device &device, const ImageCreateInfo& info)
-		: m_device(device), m_info(info)
+		: m_device(device), m_info(info), m_layout(info.initialLayout)
 {
 	VK_CHECK(vkCreateImage(m_device.get_handle(), &m_info, nullptr, &m_handle));
 
@@ -111,7 +167,8 @@ Image::Image(Image &&other) noexcept
 		: m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
 			m_device(other.m_device),
 			m_info(other.m_info),
-			m_memory_requirements(other.m_memory_requirements)
+			m_memory_requirements(other.m_memory_requirements),
+			m_layout(other.m_layout)
 {
 }
 
@@ -153,12 +210,17 @@ uint32_t Image::get_array_layer_count() const
 	return m_info.arrayLayers;
 }
 
+const VkExtent3D &Image::get_extent() const
+{
+	return m_info.extent;
+}
+
 const VkMemoryRequirements &Image::get_memory_requirements() const
 {
 	return m_memory_requirements;
 }
 
-void Image::bind(const DeviceMemory& memory, VkDeviceSize offset) const
+void Image::bind_memory(const DeviceMemory& memory, VkDeviceSize offset) const
 {
 	VK_CHECK(vkBindImageMemory(m_device.get_handle(), m_handle, memory.get_handle(), offset));
 }
@@ -167,7 +229,7 @@ void Image::upload(const CommandPool &command_pool, const void *src_data, VkDevi
 {
 	auto stage_buffer = Buffer(m_device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 	auto stage_memory = DeviceMemory(m_device, stage_buffer.get_memory_requirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-	stage_buffer.bind(stage_memory);
+	stage_buffer.bind_memory(stage_memory);
 	stage_memory.upload(0, size, src_data);
 
 	VkImageMemoryBarrier barrier{};
@@ -220,7 +282,7 @@ void Image::download(const CommandPool &command_pool, void *dst_data, VkDeviceSi
 {
 	auto stage_buffer = Buffer(m_device, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	auto stage_memory = DeviceMemory(m_device, stage_buffer.get_memory_requirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-	stage_buffer.bind(stage_memory);
+	stage_buffer.bind_memory(stage_memory);
 	
 	VkImageMemoryBarrier barrier{};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -271,4 +333,24 @@ void Image::download(const CommandPool &command_pool, void *dst_data, VkDeviceSi
 	});
 
 	stage_memory.download(0, size, dst_data);
+}
+
+void Image::set_layout(const CommandBuffer &cmd_buffer, VkImageLayout new_layout, VkImageSubresourceRange subresource_range)
+{
+	VkImageMemoryBarrier barrier{};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = m_layout;
+	barrier.newLayout = new_layout;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = m_handle;
+	barrier.subresourceRange = subresource_range;
+	barrier.srcAccessMask = access_flags(m_layout);
+	barrier.dstAccessMask = access_flags(new_layout);
+
+	auto src_stage = pipeline_stage_flags(m_layout);
+	auto dst_stage = pipeline_stage_flags(new_layout);
+	cmd_buffer.pipeline_barrier(src_stage, dst_stage, 0, {}, {}, {barrier});
+
+	m_layout = new_layout;
 }

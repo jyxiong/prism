@@ -1,5 +1,5 @@
 add_executable(glslang::validator IMPORTED)
-find_program(GLSLANG_VALIDATOR "glslangValidator" HINTS $ENV{VULKAN_SDK}/bin REQUIRED)
+find_program(GLSLANG_VALIDATOR "glslangValidator" HINTS ${CMAKE_BINARY_DIR}/bin REQUIRED)
 set_property(TARGET glslang::validator PROPERTY IMPORTED_LOCATION ${GLSLANG_VALIDATOR})
 
 macro(compile_glsl GLSL_SHADER SPV_SHADER SPV_SHADERS)

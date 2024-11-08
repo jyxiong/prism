@@ -1,10 +1,9 @@
 #pragma once
 
-#include "prism/vulkan/buffer.h"
+#include "prism/rendering/buffer_data.h"
 #include "prism/vulkan/command_buffer.h"
 #include "prism/vulkan/command_pool.h"
 #include "prism/vulkan/device.h"
-#include "prism/vulkan/device_memory.h"
 #include "prism/vulkan/instance.h"
 
 using namespace prism;
@@ -30,8 +29,7 @@ private:
 
   uint32_t m_queue_family_index;
 
-  std::unique_ptr<Buffer> m_framebuffer;
-  std::unique_ptr<DeviceMemory> m_framebuffer_memory;
+  std::unique_ptr<BufferData> m_framebuffer;
 
   std::unique_ptr<CommandPool> m_command_pool;
   std::unique_ptr<CommandBuffer> m_command_buffer;

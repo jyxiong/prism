@@ -27,11 +27,11 @@ namespace prism
 
     const std::vector<VkQueueFamilyProperties> &get_queue_family_properties() const;
 
+    const std::vector<VkExtensionProperties> &get_extensions() const;
+
     VkFormatProperties get_format_properties(VkFormat format) const;
 
     uint32_t get_queue_family_index(VkQueueFlags flags) const;
-
-    bool check_extension(const std::string& extension) const;
 
   private:
     VkPhysicalDevice m_handle{VK_NULL_HANDLE};

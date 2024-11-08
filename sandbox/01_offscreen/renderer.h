@@ -1,12 +1,10 @@
 #pragma once
 
 #include "prism/platform/window.h"
+#include "prism/rendering/image_data.h"
 #include "prism/vulkan/command_buffer.h"
 #include "prism/vulkan/command_pool.h"
 #include "prism/vulkan/device.h"
-#include "prism/vulkan/device_memory.h"
-#include "prism/vulkan/image.h"
-#include "prism/vulkan/image_view.h"
 #include "prism/vulkan/instance.h"
 #include "prism/vulkan/surface.h"
 #include "prism/vulkan/swapchain.h"
@@ -49,9 +47,7 @@ private:
 
   uint32_t m_queue_family_index;
 
-  std::unique_ptr<Image> m_storage_image;
-  std::unique_ptr<DeviceMemory> m_storage_memory;
-  std::unique_ptr<ImageView> m_storage_image_view;
+  std::unique_ptr<ImageData> m_storage_data;
 
   std::unique_ptr<CommandPool> m_command_pool;
   std::vector<CommandBuffer> m_command_buffers;
