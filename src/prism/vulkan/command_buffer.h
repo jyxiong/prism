@@ -8,6 +8,7 @@ namespace prism
   class Image;
   class CommandPool;
   class ComputePipeline;
+  class GraphicsPipeline;
 
   class CommandBuffer
   {
@@ -48,10 +49,21 @@ namespace prism
 
     void bind_pipeline(const ComputePipeline &pipeline) const;
 
+    void bind_pipeline(const GraphicsPipeline &pipeline) const;
+
     void bind_descriptor_set(const VkPipelineBindPoint bind_point, const VkPipelineLayout layout, const VkDescriptorSet descriptor_set) const;
 
     void dispatch(uint32_t group_count_x, uint32_t group_count_y, uint32_t group_count_z) const;
 
+    void begin_render_pass(const VkRenderPassBeginInfo &begin_info, VkSubpassContents contents) const;
+
+    void end_render_pass() const;
+
+    void draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance) const;
+
+    void set_viewport(const VkViewport &viewport) const;
+
+    void set_scissor(const VkRect2D &scissor) const;
 
   private:
     VkCommandBuffer m_handle;

@@ -5,6 +5,7 @@
 #include "prism/platform/glfw_window.h"
 #include "prism/vulkan/device_features.h"
 #include "prism/vulkan/utils.h"
+#include "prism/vulkan/shader_stage.h"
 
 static uint32_t WIDTH = 800;
 static uint32_t HEIGHT = 600;
@@ -26,7 +27,9 @@ Renderer::Renderer() {
   create_command_buffer();
   create_render_target();
   create_sync_object();
+  create_render_pass();
   create_pipeline();
+  create_framebuffer();
   create_descriptors();
 }
 
@@ -104,9 +107,9 @@ void Renderer::create_render_target() {
   ImageCreateInfo image_ci{};
   image_ci.set_extent({WIDTH, HEIGHT, 1})
       .set_image_type(VK_IMAGE_TYPE_2D)
-      .set_format(VK_FORMAT_B8G8R8A8_UNORM)
+      .set_format(m_swapchain->get_format())
       .set_usage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                 VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+                 VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
   ImageViewCreateInfo image_view_ci{};
   image_view_ci.set_view_type(VK_IMAGE_VIEW_TYPE_2D);
 
@@ -139,48 +142,110 @@ void Renderer::create_command_buffer() {
   }
 }
 
+void Renderer::create_render_pass() {
+  std::vector<AttachmentDescription> color_attachments(1);
+  color_attachments[0].format = m_swapchain->get_format();
+  color_attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+  color_attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  color_attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  color_attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  color_attachments[0].finalLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+  auto color_attachment_ref = AttachmentReference{};
+  color_attachment_ref.attachment = 0;
+  color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+  std::vector<SubpassDescription> subpasses(1);
+  subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+  subpasses[0].colorAttachmentCount = 1;
+  subpasses[0].pColorAttachments = &color_attachment_ref;
+
+  std::vector<SubpassDependency> dependencies(1);
+  dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+  dependencies[0].dstSubpass = 0;
+  dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependencies[0].srcAccessMask = 0;
+  dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+  m_render_pass = std::make_unique<RenderPass>(*m_device, color_attachments,
+                                               subpasses, dependencies);
+}
+
 void Renderer::create_pipeline() {
-  DescriptorSetLayout::Bindings bindings{
-      {0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT}};
-  m_descriptor_set_layout =
-      std::make_unique<DescriptorSetLayout>(*m_device, bindings);
-  m_pipeline_layout =
-      std::make_unique<PipelineLayout>(*m_device, *m_descriptor_set_layout);
-  
-  auto shader_module = ShaderModule(*m_device, "../shaders/raytrace.comp.spv", VK_SHADER_STAGE_COMPUTE_BIT);
-  ShaderStage shader_stage{};
-  shader_stage.set_stage(shader_module.get_stage())
-      .set_module(shader_module)
-      .set_entry_point(shader_module.get_entry_point());
-  
-  m_compute_pipeline = std::make_unique<ComputePipeline>(
-      *m_device, *m_pipeline_layout, shader_stage);
+  auto vert_module = ShaderModule(*m_device, "../shaders/shader.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+  auto frag_module = ShaderModule(*m_device, "../shaders/shader.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+  std::vector<ShaderStage> shader_stages(2);
+  shader_stages[0].set_stage(vert_module.get_stage())
+      .set_module(vert_module)
+      .set_entry_point(vert_module.get_entry_point());
+
+  shader_stages[1].set_stage(frag_module.get_stage())
+      .set_module(frag_module)
+      .set_entry_point(frag_module.get_entry_point());
+
+  std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments(1);
+  color_blend_attachments[0].colorWriteMask =
+      VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+      VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+  color_blend_attachments[0].blendEnable = VK_FALSE;
+  ColorBlendState color_blend_state{};
+  color_blend_state.set_attachments(color_blend_attachments);
+
+  std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT,
+                                                VK_DYNAMIC_STATE_SCISSOR};
+  DynamicState dynamic_state{};
+  dynamic_state.set_dynamic_states(dynamic_states);
+
+  m_pipeline_layout = std::make_unique<PipelineLayout>(*m_device, std::vector<DescriptorSetLayout>());
+
+  GraphicsPipelineCreateInfo pipeline_ci{};
+  pipeline_ci.set_shader_stages(shader_stages)
+      .set_layout(*m_pipeline_layout)
+      .set_render_pass(*m_render_pass)
+      .set_subpass(0)
+      .set_color_blend_state(color_blend_state)
+      .set_dynamic_state(dynamic_state)
+      .set_tesellation_state(TessellationState{})
+      .set_input_assembly_state(InputAssemblyState{})
+      .set_depth_stencil_state(DepthStencilState{})
+      .set_multisample_state(MultisampleState{})
+      .set_rasterization_state(RasterizationState{})
+      .set_viewport_state(ViewportState{})
+      .set_vertex_input_state(VertexInputState{});
+  m_graphic_pipeline = std::make_unique<GraphicsPipeline>(*m_device, pipeline_ci);
+}
+
+void Renderer::create_framebuffer() {
+  m_framebuffer = std::make_unique<Framebuffer>(
+      *m_device, *m_render_pass, *m_storage_data->image_view, WIDTH, HEIGHT);
 }
 
 void Renderer::create_descriptors() {
-  std::vector<VkDescriptorPoolSize> pool_sizes{
-      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}};
-  m_descriptor_pool =
-      std::make_unique<DescriptorPool>(*m_device, pool_sizes, 1);
+  // std::vector<VkDescriptorPoolSize> pool_sizes{
+  //     {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}};
+  // m_descriptor_pool =
+  //     std::make_unique<DescriptorPool>(*m_device, pool_sizes, 1);
 
-  m_descriptor_set = std::make_unique<DescriptorSet>(
-      *m_device, *m_descriptor_set_layout, *m_descriptor_pool);
+  // m_descriptor_set = std::make_unique<DescriptorSet>(
+  //     *m_device, *m_descriptor_set_layout, *m_descriptor_pool);
 
-  VkDescriptorImageInfo image_info{};
-  image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-  image_info.imageView = m_storage_data->image_view->get_handle();
-  image_info.sampler = VK_NULL_HANDLE;
+  // VkDescriptorImageInfo image_info{};
+  // image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+  // image_info.imageView = m_storage_data->image_view->get_handle();
+  // image_info.sampler = VK_NULL_HANDLE;
 
-  VkWriteDescriptorSet write{};
-  write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  write.dstSet = m_descriptor_set->get_handle();
-  write.dstBinding = 0;
-  write.dstArrayElement = 0;
-  write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-  write.descriptorCount = 1;
-  write.pImageInfo = &image_info;
+  // VkWriteDescriptorSet write{};
+  // write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  // write.dstSet = m_descriptor_set->get_handle();
+  // write.dstBinding = 0;
+  // write.dstArrayElement = 0;
+  // write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+  // write.descriptorCount = 1;
+  // write.pImageInfo = &image_info;
 
-  vkUpdateDescriptorSets(m_device->get_handle(), 1, &write, 0, nullptr);
+  // vkUpdateDescriptorSets(m_device->get_handle(), 1, &write, 0, nullptr);
 }
 
 void Renderer::create_sync_object() {
@@ -220,14 +285,47 @@ void Renderer::draw() {
   m_command_buffers[m_current_frame].begin(
       VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
+  // render pass begin
+  VkRenderPassBeginInfo render_pass_bi{};
+  render_pass_bi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  render_pass_bi.renderPass = m_render_pass->get_handle();
+  render_pass_bi.framebuffer = m_framebuffer->get_handle();
+  render_pass_bi.renderArea.offset = {0, 0};
+  render_pass_bi.renderArea.extent = {WIDTH, HEIGHT};
+
+  std::array<VkClearValue, 1> clear_values{};
+  clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+
+  render_pass_bi.clearValueCount = clear_values.size();
+  render_pass_bi.pClearValues = clear_values.data();
+
+  m_command_buffers[m_current_frame].begin_render_pass(
+      render_pass_bi, VK_SUBPASS_CONTENTS_INLINE);
+
   // darw to storage image
-  m_command_buffers[m_current_frame].bind_pipeline(*m_compute_pipeline);
+  m_command_buffers[m_current_frame].bind_pipeline(*m_graphic_pipeline);
 
-  m_command_buffers[m_current_frame].bind_descriptor_set(
-      VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline_layout->get_handle(),
-      m_descriptor_set->get_handle());
+  // m_command_buffers[m_current_frame].bind_descriptor_set(
+  //     VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline_layout->get_handle(),
+  //     m_descriptor_set->get_handle());
 
-  m_command_buffers[m_current_frame].dispatch(WIDTH / 8, HEIGHT / 8, 1);
+  VkViewport viewport{};
+  viewport.x = 0.0f;
+  viewport.y = 0.0f;
+  viewport.width = static_cast<float>(WIDTH);
+  viewport.height = static_cast<float>(HEIGHT);
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+  m_command_buffers[m_current_frame].set_viewport(viewport);
+
+  VkRect2D scissor{};
+  scissor.offset = {0, 0};
+  scissor.extent = {WIDTH, HEIGHT};
+  m_command_buffers[m_current_frame].set_scissor(scissor);
+
+  m_command_buffers[m_current_frame].draw(3, 1, 0, 0);
+
+  m_command_buffers[m_current_frame].end_render_pass();
 
   VkImageMemoryBarrier image_memory_barrier{};
   image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

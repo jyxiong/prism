@@ -3,6 +3,7 @@
 #include "prism/vulkan/buffer.h"
 #include "prism/vulkan/command_pool.h"
 #include "prism/vulkan/compute_pipeline.h"
+#include "prism/vulkan/graphics_pipeline.h"
 #include "prism/vulkan/error.h"
 #include "prism/vulkan/image.h"
 
@@ -97,6 +98,11 @@ void CommandBuffer::bind_pipeline(const ComputePipeline &pipeline) const {
                     pipeline.get_handle());
 }
 
+void CommandBuffer::bind_pipeline(const GraphicsPipeline &pipeline) const {
+  vkCmdBindPipeline(m_handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipeline.get_handle());
+}
+
 void CommandBuffer::bind_descriptor_set(const VkPipelineBindPoint bind_point,
                                         const VkPipelineLayout layout,
                                         const VkDescriptorSet descriptor_set) const {
@@ -107,4 +113,25 @@ void CommandBuffer::bind_descriptor_set(const VkPipelineBindPoint bind_point,
 void CommandBuffer::dispatch(uint32_t group_count_x, uint32_t group_count_y,
                              uint32_t group_count_z) const {
   vkCmdDispatch(m_handle, group_count_x, group_count_y, group_count_z);
+}
+
+void CommandBuffer::begin_render_pass(const VkRenderPassBeginInfo &begin_info,
+                                      VkSubpassContents contents) const {
+  vkCmdBeginRenderPass(m_handle, &begin_info, contents);
+}
+
+void CommandBuffer::end_render_pass() const { vkCmdEndRenderPass(m_handle); }
+
+void CommandBuffer::draw(uint32_t vertex_count, uint32_t instance_count,
+                         uint32_t first_vertex, uint32_t first_instance) const {
+  vkCmdDraw(m_handle, vertex_count, instance_count, first_vertex,
+            first_instance);
+}
+
+void CommandBuffer::set_viewport(const VkViewport &viewport) const {
+  vkCmdSetViewport(m_handle, 0, 1, &viewport);
+}
+
+void CommandBuffer::set_scissor(const VkRect2D &scissor) const {
+  vkCmdSetScissor(m_handle, 0, 1, &scissor);
 }
