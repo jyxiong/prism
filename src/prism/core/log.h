@@ -1,21 +1,13 @@
 #pragma once
 
-namespace prism
-{
-    class Log
-    {
-    public:
-        static void init();
+namespace prism::log {
 
-        static std::shared_ptr<spdlog::logger> &get_logger();
+void init();
 
-    private:
-        static std::shared_ptr<spdlog::logger> s_logger;
-    };
-}
+} // namespace prism::log
 
-#define LOG_TRACE(...) ::prism::Log::get_logger()->trace(__VA_ARGS__)
-#define LOG_INFO(...) ::prism::Log::get_logger()->info(__VA_ARGS__)
-#define LOG_WARN(...) ::prism::Log::get_logger()->warn(__VA_ARGS__)
-#define LOG_ERROR(...) ::prism::Log::get_logger()->error(__VA_ARGS__)
-#define LOG_CRITICAL(...) ::prism::Log::get_logger()->critical(__VA_ARGS__)
+#define LOG_TRACE(...) spdlog::trace(__VA_ARGS__);
+#define LOG_INFO(...) spdlog::info(__VA_ARGS__);
+#define LOG_WARN(...) spdlog::warn(__VA_ARGS__);
+#define LOG_ERROR(...) spdlog::error("{}", fmt::format(__VA_ARGS__));
+#define LOG_CRITICAL(...) spdlog::debug(__VA_ARGS__);
