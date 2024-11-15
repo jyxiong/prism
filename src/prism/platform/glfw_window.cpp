@@ -16,6 +16,16 @@ GlfwWindow::GlfwWindow(const Window::Properties &properties)
     glfwWindowHint(GLFW_RESIZABLE, properties.resizable);
 
     m_handle = glfwCreateWindow(properties.extent.x, properties.extent.y, properties.title.c_str(), nullptr, nullptr);
+
+    glfwSetWindowUserPointer(m_handle, &m_properties);
+
+    glfwSetFramebufferSizeCallback(m_handle, [](GLFWwindow *window, int width,
+                                           int height) {
+      Window::Properties *properties =
+          static_cast<Window::Properties *>(glfwGetWindowUserPointer(window));
+      properties->extent = {width, height};
+      
+    });
 }
 
 GlfwWindow::~GlfwWindow()

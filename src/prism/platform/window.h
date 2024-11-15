@@ -51,7 +51,9 @@ namespace prism
 
         glm::ivec2 resize(const glm::ivec2 &extent);
 
-    private:
+        const glm::ivec2 &get_extent() const;
+
+    protected:
         Properties m_properties;
 
     }; // class Window

@@ -65,6 +65,8 @@ namespace prism
 
     const std::vector<SwapchainImage> &get_images() const;
 
+    const std::vector<ImageView> &get_image_views() const;
+
     VkResult acquire_next_image(uint64_t time_out, const Semaphore& semaphore, const std::optional<Fence>& fence, uint32_t &image_index) const;
 
   private:

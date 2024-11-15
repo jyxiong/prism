@@ -7,15 +7,7 @@
 #include "prism/vulkan/utils.h"
 #include "prism/vulkan/shader_stage.h"
 
-static uint32_t WIDTH = 800;
-static uint32_t HEIGHT = 600;
-
-static std::vector<glm::u8vec4> red(WIDTH *HEIGHT, glm::u8vec4(255, 0, 0, 255));
-static std::vector<glm::u8vec4> green(WIDTH *HEIGHT,
-                                      glm::u8vec4(0, 255, 0, 255));
-static std::vector<glm::u8vec4> blue(WIDTH *HEIGHT,
-                                     glm::u8vec4(0, 0, 255, 255));
-static uint32_t frame_count = 0;
+const int MAX_FRAMES_IN_FLIGHT = 2;
 
 Renderer::Renderer() {
   create_window();
@@ -30,15 +22,17 @@ Renderer::Renderer() {
   create_render_pass();
   create_pipeline();
   create_framebuffer();
-  create_descriptors();
+  // create_descriptors();
 }
 
-void Renderer::render() {
+void Renderer::render_loop() {
 
   while (!m_window->should_close()) {
     m_window->process_events();
 
     draw();
+
+    display();
   }
 
   m_device->wait_idle();
@@ -46,8 +40,8 @@ void Renderer::render() {
 
 void Renderer::create_window() {
   Window::Properties props{};
-  props.extent = {WIDTH, HEIGHT};
-  props.resizable = false;
+  props.extent = { m_extent.width, m_extent.height};
+  props.resizable = true;
   props.title = "Prism";
   m_window = std::make_unique<GlfwWindow>(props);
 }
@@ -63,6 +57,8 @@ void Renderer::create_instance() {
   inst_layers.push_back("VK_LAYER_KHRONOS_validation");
 
   m_instance = std::make_unique<Instance>(inst_exts, inst_layers);
+
+  LOG_INFO("Vulkan instance created");
 }
 
 void Renderer::create_device() {
@@ -82,7 +78,9 @@ void Renderer::create_device() {
   m_device = std::make_unique<Device>(m_instance->pick_physical_device(),
                                       dev_exts, dev_features);
   m_queue_family_index = m_device->get_physical_device().get_queue_family_index(
-      VK_QUEUE_TRANSFER_BIT);
+      VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT);
+
+  LOG_INFO("Vulkan device created");
 }
 
 void Renderer::create_surface() {
@@ -90,12 +88,8 @@ void Renderer::create_surface() {
 }
 
 void Renderer::create_swapchain() {
-
-  glfwGetFramebufferSize((GLFWwindow *)m_window->get_handle(), (int *)&WIDTH,
-                         (int *)&HEIGHT);
-
   Swapchain::Properties props{};
-  props.extent = {WIDTH, HEIGHT};
+  props.extent = m_extent;
   props.image_usage =
       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
   props.surface_format = {VK_FORMAT_B8G8R8A8_UNORM,
@@ -105,7 +99,7 @@ void Renderer::create_swapchain() {
 
 void Renderer::create_render_target() {
   ImageCreateInfo image_ci{};
-  image_ci.set_extent({WIDTH, HEIGHT, 1})
+  image_ci.set_extent({m_extent.width, m_extent.height, 1})
       .set_image_type(VK_IMAGE_TYPE_2D)
       .set_format(m_swapchain->get_format())
       .set_usage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
@@ -136,10 +130,12 @@ void Renderer::create_command_pool() {
 }
 
 void Renderer::create_command_buffer() {
-  m_command_buffers.reserve(m_swapchain->get_images().size());
-  for (size_t i = 0; i < m_swapchain->get_images().size(); ++i) {
+  m_command_buffers.reserve(MAX_FRAMES_IN_FLIGHT);
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
     m_command_buffers.emplace_back(*m_command_pool);
   }
+
+  m_draw_command_buffer = std::make_unique<CommandBuffer>(*m_command_pool);
 }
 
 void Renderer::create_render_pass() {
@@ -219,7 +215,12 @@ void Renderer::create_pipeline() {
 
 void Renderer::create_framebuffer() {
   m_framebuffer = std::make_unique<Framebuffer>(
-      *m_device, *m_render_pass, *m_storage_data->image_view, WIDTH, HEIGHT);
+      *m_device, *m_render_pass, *m_storage_data->image_view, m_extent.width, m_extent.height);
+
+  // m_framebuffers.reserve(m_swapchain->get_image_views().size());
+  // for (const auto &image_view : m_swapchain->get_image_views()) {
+  //   m_framebuffers.emplace_back(*m_device, *m_render_pass, image_view, m_extent.width, m_extent.height);
+  // }
 }
 
 void Renderer::create_descriptors() {
@@ -249,20 +250,74 @@ void Renderer::create_descriptors() {
 }
 
 void Renderer::create_sync_object() {
-  auto swapchain_image_count = m_swapchain->get_images().size();
+  m_image_availabel_semaphores.reserve(MAX_FRAMES_IN_FLIGHT);
+  m_render_finished_semaphores.reserve(MAX_FRAMES_IN_FLIGHT);
+  m_in_flight_fences.reserve(MAX_FRAMES_IN_FLIGHT);
 
-  m_image_availabel_semaphores.reserve(swapchain_image_count);
-  m_render_finished_semaphores.reserve(swapchain_image_count);
-  m_in_flight_fences.reserve(swapchain_image_count);
-
-  for (size_t i = 0; i < swapchain_image_count; ++i) {
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
     m_image_availabel_semaphores.emplace_back(*m_device);
     m_render_finished_semaphores.emplace_back(*m_device);
     m_in_flight_fences.emplace_back(*m_device, VK_FENCE_CREATE_SIGNALED_BIT);
   }
 }
 
-void Renderer::draw() {
+void Renderer::draw()
+{
+  auto &queue = m_device->get_queue(m_queue_family_index, 0);
+
+  m_draw_command_buffer->reset();
+
+  m_draw_command_buffer->begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+  // render pass begin
+  VkRenderPassBeginInfo render_pass_bi{};
+  render_pass_bi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  render_pass_bi.renderPass = m_render_pass->get_handle();
+  render_pass_bi.framebuffer = m_framebuffer->get_handle();
+  render_pass_bi.renderArea.offset = {0, 0};
+  render_pass_bi.renderArea.extent = m_extent;
+  
+  std::array<VkClearValue, 1> clear_values{};
+  clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+
+  render_pass_bi.clearValueCount = clear_values.size();
+  render_pass_bi.pClearValues = clear_values.data();
+
+  m_draw_command_buffer->begin_render_pass(
+      render_pass_bi, VK_SUBPASS_CONTENTS_INLINE);
+
+  m_draw_command_buffer->bind_pipeline(*m_graphic_pipeline);
+
+  // m_command_buffers[m_current_frame].bind_descriptor_set(
+  //     VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline_layout->get_handle(),
+  //     m_descriptor_set->get_handle());
+
+  VkViewport viewport{};
+  viewport.x = 0.0f;
+  viewport.y = 0.0f;
+  viewport.width = static_cast<float>(m_extent.width);
+  viewport.height = static_cast<float>(m_extent.height);
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+  m_draw_command_buffer->set_viewport(viewport);
+
+  VkRect2D scissor{};
+  scissor.offset = {0, 0};
+  scissor.extent = m_extent;
+  m_draw_command_buffer->set_scissor(scissor);
+
+  m_draw_command_buffer->draw(3, 1, 0, 0);
+
+  m_draw_command_buffer->end_render_pass();
+
+  m_draw_command_buffer->end();
+
+  queue.submit(*m_draw_command_buffer);
+
+  queue.wait_idle();
+}
+
+void Renderer::display() {
   m_in_flight_fences[m_current_frame].wait();
 
   uint32_t image_index;
@@ -285,48 +340,6 @@ void Renderer::draw() {
   m_command_buffers[m_current_frame].begin(
       VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-  // render pass begin
-  VkRenderPassBeginInfo render_pass_bi{};
-  render_pass_bi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  render_pass_bi.renderPass = m_render_pass->get_handle();
-  render_pass_bi.framebuffer = m_framebuffer->get_handle();
-  render_pass_bi.renderArea.offset = {0, 0};
-  render_pass_bi.renderArea.extent = {WIDTH, HEIGHT};
-
-  std::array<VkClearValue, 1> clear_values{};
-  clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
-
-  render_pass_bi.clearValueCount = clear_values.size();
-  render_pass_bi.pClearValues = clear_values.data();
-
-  m_command_buffers[m_current_frame].begin_render_pass(
-      render_pass_bi, VK_SUBPASS_CONTENTS_INLINE);
-
-  // darw to storage image
-  m_command_buffers[m_current_frame].bind_pipeline(*m_graphic_pipeline);
-
-  // m_command_buffers[m_current_frame].bind_descriptor_set(
-  //     VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline_layout->get_handle(),
-  //     m_descriptor_set->get_handle());
-
-  VkViewport viewport{};
-  viewport.x = 0.0f;
-  viewport.y = 0.0f;
-  viewport.width = static_cast<float>(WIDTH);
-  viewport.height = static_cast<float>(HEIGHT);
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
-  m_command_buffers[m_current_frame].set_viewport(viewport);
-
-  VkRect2D scissor{};
-  scissor.offset = {0, 0};
-  scissor.extent = {WIDTH, HEIGHT};
-  m_command_buffers[m_current_frame].set_scissor(scissor);
-
-  m_command_buffers[m_current_frame].draw(3, 1, 0, 0);
-
-  m_command_buffers[m_current_frame].end_render_pass();
-
   VkImageMemoryBarrier image_memory_barrier{};
   image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   image_memory_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -345,7 +358,7 @@ void Renderer::draw() {
       {}, {}, {image_memory_barrier});
 
   // transition swapchain image layout to transfer destination
-  auto &swapchain_image = m_swapchain->get_images()[m_current_frame];
+  auto &swapchain_image = m_swapchain->get_images()[image_index];
   image_memory_barrier.srcAccessMask = 0;
   image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
   image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -362,17 +375,17 @@ void Renderer::draw() {
   image_copy.srcSubresource.layerCount = 1;
   image_copy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   image_copy.dstSubresource.layerCount = 1;
-  image_copy.extent.width = WIDTH;
-  image_copy.extent.height = HEIGHT;
+  image_copy.extent.width = m_extent.width;
+  image_copy.extent.height = m_extent.height;
   image_copy.extent.depth = 1;
 
   m_command_buffers[m_current_frame].copy_image(*m_storage_data->image,
                                                 swapchain_image, {image_copy});
 
-  // transition swapchain image layout to present source
+  //  transition swapchain image layout to present source
   image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
   image_memory_barrier.dstAccessMask = 0;
-  image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+  image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
   image_memory_barrier.image = swapchain_image.get_handle();
 
@@ -413,7 +426,7 @@ void Renderer::draw() {
   submit_info.signalSemaphoreCount = 1;
   submit_info.pSignalSemaphores = signal_semaphores;
   // wait stage
-  VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
+  VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
   submit_info.pWaitDstStageMask = wait_stages;
 
   if (vkQueueSubmit(queue.get_handle(), 1, &submit_info,
@@ -421,6 +434,8 @@ void Renderer::draw() {
       VK_SUCCESS) {
     throw std::runtime_error("failed to submit draw command buffer!");
   }
+
+  vkQueueWaitIdle(queue.get_handle());
 
   // present
   VkPresentInfoKHR present_info{};
@@ -434,20 +449,45 @@ void Renderer::draw() {
 
   result = vkQueuePresentKHR(queue.get_handle(), &present_info);
 
-  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+  const auto &extent = m_window->get_extent();
+  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_extent.width != extent.x || m_extent.height != extent.y) {
     recreate_swapchain();
   } else if (result != VK_SUCCESS) {
     throw std::runtime_error("failed to present swapchain image!");
   }
 
-  m_current_frame = (m_current_frame + 1) % m_swapchain->get_images().size();
+  m_current_frame = (m_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 void Renderer::recreate_swapchain() {
   m_device->wait_idle();
+
+  glfwGetFramebufferSize((GLFWwindow *)m_window->get_handle(), (int*)&m_extent.width, (int*)&m_extent.height);
+  while (m_extent.width == 0 || m_extent.height == 0) {
+      glfwGetFramebufferSize((GLFWwindow *)m_window->get_handle(), (int*)&m_extent.width, (int*)&m_extent.height);
+      glfwWaitEvents();
+  }
+
+  m_framebuffer.reset();
+  // m_framebuffers.clear();
   m_swapchain.reset();
   m_storage_data.reset();
+  // m_image_availabel_semaphores.clear();
+  // m_render_finished_semaphores.clear();
+  // m_in_flight_fences.clear();
+  // m_command_buffers.clear();
+  // m_draw_command_buffer.reset();
+  // m_command_pool.reset();
+
+  m_current_frame = 0;
 
   create_swapchain();
+  // create_command_pool();
+  // create_command_buffer();
   create_render_target();
+  // create_sync_object();
+  // create_render_pass();
+  // create_pipeline();
+  create_framebuffer();
+  // create_descriptors();
 }

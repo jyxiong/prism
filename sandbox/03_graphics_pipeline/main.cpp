@@ -8,7 +8,7 @@ int main() {
   }
   
     Renderer render;
-    render.render();
+    render.render_loop();
     // render.save("output.hdr");
 
     return 0;

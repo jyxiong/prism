@@ -143,6 +143,11 @@ const std::vector<SwapchainImage> &Swapchain::get_images() const
   return m_images;
 }
 
+const std::vector<ImageView> &Swapchain::get_image_views() const
+{
+  return m_image_views;
+}
+
 VkResult Swapchain::acquire_next_image(uint64_t time_out, const Semaphore& semaphore, const std::optional<Fence>& fence, uint32_t &image_index) const
 {
   auto fence_handle = fence.has_value() ? fence->get_handle() : VK_NULL_HANDLE;

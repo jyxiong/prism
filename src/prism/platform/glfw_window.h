@@ -26,6 +26,8 @@ namespace prism
 
     private:
         GLFWwindow *m_handle{nullptr};
+
+        std::function<void(uint32_t, uint32_t)> m_resize_callback;
     };
 
 } // namespace prism
