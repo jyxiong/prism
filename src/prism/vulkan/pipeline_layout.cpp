@@ -1,7 +1,5 @@
 #include "prism/vulkan/pipeline_layout.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 PipelineLayout::PipelineLayout(const Device &device, const DescriptorSetLayout &descriptor_set_layout, const std::vector<VkPushConstantRange> &push_constant_ranges)

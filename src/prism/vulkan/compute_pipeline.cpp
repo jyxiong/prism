@@ -1,7 +1,5 @@
 #include "prism/vulkan/compute_pipeline.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 ComputePipeline::ComputePipeline(const Device &device, const PipelineLayout &pipeline_layout, const ShaderStage& shader_stage)

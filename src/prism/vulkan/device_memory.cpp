@@ -1,7 +1,5 @@
 #include "prism/vulkan/device_memory.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 DeviceMemory::DeviceMemory(const Device &device, const VkMemoryRequirements &requirements, VkMemoryPropertyFlags property_flags, VkMemoryAllocateFlags allocate_flags)

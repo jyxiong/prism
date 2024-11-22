@@ -1,7 +1,5 @@
 #include "prism/vulkan/fence.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 Fence::Fence(const Device& device, VkFenceCreateFlags flags)

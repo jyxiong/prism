@@ -1,6 +1,5 @@
 #include "prism/vulkan/acceleration_structure.h"
 
-#include "prism/vulkan/error.h"
 #include "prism/vulkan/utils.h"
 #include "prism/vulkan/command_pool.h"
 #include "prism/vulkan/command_buffer.h"

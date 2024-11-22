@@ -3,7 +3,6 @@
 #include "prism/vulkan/buffer.h"
 #include "prism/vulkan/command_buffer.h"
 #include "prism/vulkan/device_memory.h"
-#include "prism/vulkan/error.h"
 #include "prism/vulkan/utils.h"
 
 using namespace prism;

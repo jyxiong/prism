@@ -1,7 +1,6 @@
 #include "prism/vulkan/shader_module.h"
 
 #include "prism/core/filesystem.h"
-#include "prism/vulkan/error.h"
 
 using namespace prism;
 

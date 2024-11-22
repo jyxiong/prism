@@ -1,7 +1,5 @@
 #include "prism/vulkan/context.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debug_utils_messenger_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, VkDebugUtilsMessageTypeFlagsEXT message_type,

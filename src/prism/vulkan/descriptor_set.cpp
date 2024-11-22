@@ -1,7 +1,6 @@
 #include "prism/vulkan/descriptor_set.h"
 
 #include "prism/vulkan/device.h"
-#include "prism/vulkan/error.h"
 
 using namespace prism;
 

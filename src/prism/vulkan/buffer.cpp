@@ -1,6 +1,5 @@
 #include "prism/vulkan/buffer.h"
 
-#include "prism/vulkan/error.h"
 #include "prism/vulkan/utils.h"
 #include "prism/vulkan/command_buffer.h"
 

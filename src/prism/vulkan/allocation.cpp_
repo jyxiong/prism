@@ -1,7 +1,5 @@
 #include "prism/vulkan/allocation.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 Allocation::Allocation(const Allocator &allocator)

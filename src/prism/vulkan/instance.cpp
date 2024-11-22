@@ -1,6 +1,5 @@
 #include "prism/vulkan/instance.h"
 
-#include "prism/vulkan/error.h"
 #include "prism/vulkan/utils.h"
 
 using namespace prism;

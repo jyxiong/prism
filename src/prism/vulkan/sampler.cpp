@@ -1,7 +1,5 @@
 #include "prism/vulkan/sampler.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 SamplerCreateInfo::SamplerCreateInfo()

@@ -1,7 +1,5 @@
 #include "prism/vulkan/framebuffer.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 Framebuffer::Framebuffer(const Device &device, const RenderPass &render_pass, const ImageView &attachment, uint32_t width, uint32_t height, uint32_t layers)

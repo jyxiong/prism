@@ -1,7 +1,5 @@
 #include "prism/vulkan/image_view.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 VkImageAspectFlags aspect_mask(VkFormat format)

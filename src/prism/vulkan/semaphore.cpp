@@ -1,7 +1,5 @@
 #include "prism/vulkan/semaphore.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 Semaphore::Semaphore(const Device& device)

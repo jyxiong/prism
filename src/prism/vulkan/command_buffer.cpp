@@ -4,7 +4,6 @@
 #include "prism/vulkan/command_pool.h"
 #include "prism/vulkan/compute_pipeline.h"
 #include "prism/vulkan/graphics_pipeline.h"
-#include "prism/vulkan/error.h"
 #include "prism/vulkan/image.h"
 
 

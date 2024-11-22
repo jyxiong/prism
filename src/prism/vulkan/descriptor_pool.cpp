@@ -1,7 +1,5 @@
 #include "prism/vulkan/descriptor_pool.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 DescriptorPool::DescriptorPool(const Device &device, const std::vector<VkDescriptorPoolSize> &pool_sizes, uint32_t max_sets)

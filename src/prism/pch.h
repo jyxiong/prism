@@ -16,3 +16,4 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 
 #include "prism/core/log.h"
+#include "prism/vulkan/error.h"

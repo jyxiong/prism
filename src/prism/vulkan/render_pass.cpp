@@ -1,7 +1,5 @@
 #include "prism/vulkan/render_pass.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 AttachmentDescription &AttachmentDescription::set_flags(

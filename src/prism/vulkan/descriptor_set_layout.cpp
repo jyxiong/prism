@@ -1,7 +1,5 @@
 #include "prism/vulkan/descriptor_set_layout.h"
 
-#include "prism/vulkan/error.h"
-
 using namespace prism;
 
 DescriptorSetLayout::DescriptorSetLayout(const Device &device, const Bindings &bindings)
