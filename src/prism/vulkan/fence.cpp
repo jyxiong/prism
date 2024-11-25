@@ -26,7 +26,7 @@ Fence::~Fence()
   }
 }
 
-void Fence::wait(uint64_t timeout)
+void Fence::wait(uint64_t timeout) const
 {
   VK_CHECK(vkWaitForFences(m_device.get_handle(), 1, &m_handle, VK_TRUE, timeout));
 }

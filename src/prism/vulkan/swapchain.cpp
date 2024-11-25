@@ -88,19 +88,9 @@ Swapchain::Swapchain(const Device &device, const Surface &surface, const Propert
           .set_extent({m_properties.extent.width, m_properties.extent.height, 1})
           .set_usage(m_properties.image_usage);
 
-  ImageViewCreateInfo image_view_ci{};
-  image_view_ci.set_view_type(VK_IMAGE_VIEW_TYPE_2D)
-      .set_format(m_properties.surface_format.format)
-      .set_level_count(1)
-      .set_layer_count(1)
-      .set_aspect_mask(VK_IMAGE_ASPECT_COLOR_BIT);
-
   for (auto &vk_image : vk_images)
   {
     m_images.emplace_back(m_device, image_ci, vk_image);
-
-    image_view_ci.image = vk_image;
-    m_image_views.emplace_back(m_images.back(), image_view_ci);
   }
 }
 
@@ -109,7 +99,6 @@ Swapchain::Swapchain(Swapchain &&other) noexcept
       m_device(other.m_device),
       m_surface(other.m_surface),
       m_images(std::move(other.m_images)),
-      m_image_views(std::move(other.m_image_views)),
       m_properties(other.m_properties)
 {
 }
@@ -142,15 +131,13 @@ const std::vector<SwapchainImage> &Swapchain::get_images() const
   return m_images;
 }
 
-const std::vector<ImageView> &Swapchain::get_image_views() const
-{
-  return m_image_views;
-}
-
-VkResult Swapchain::acquire_next_image(uint64_t time_out, const Semaphore& semaphore, const std::optional<Fence>& fence, uint32_t &image_index) const
-{
-  auto fence_handle = fence.has_value() ? fence->get_handle() : VK_NULL_HANDLE;
-  return vkAcquireNextImageKHR(m_device.get_handle(), m_handle, time_out, semaphore.get_handle(), fence_handle, &image_index);
+VkResult Swapchain::acquire_next_image(uint64_t time_out,
+                                       const Semaphore &semaphore,
+                                       const Fence &fence,
+                                       uint32_t &image_index) {
+  return vkAcquireNextImageKHR(m_device.get_handle(), m_handle, time_out,
+                               semaphore.get_handle(), fence.get_handle(),
+                               &image_index);
 }
 
 SwapchainSupportDetails query_swapchain_support(const Device &device, const Surface &surface)

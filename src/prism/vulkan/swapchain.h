@@ -65,9 +65,7 @@ namespace prism
 
     const std::vector<SwapchainImage> &get_images() const;
 
-    const std::vector<ImageView> &get_image_views() const;
-
-    VkResult acquire_next_image(uint64_t time_out, const Semaphore& semaphore, const std::optional<Fence>& fence, uint32_t &image_index) const;
+    VkResult acquire_next_image(uint64_t time_out, const Semaphore& semaphore, const Fence& fence, uint32_t &image_index);
 
   private:
     VkSwapchainKHR m_handle{};
@@ -77,7 +75,6 @@ namespace prism
     const Surface &m_surface;
 
     std::vector<SwapchainImage> m_images;
-    std::vector<ImageView> m_image_views;
 
     Properties m_properties;
 

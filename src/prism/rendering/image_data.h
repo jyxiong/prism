@@ -17,6 +17,14 @@ namespace prism
       
       ~ImageData();
 
+      ImageData(const ImageData&) = delete;
+
+      ImageData& operator=(const ImageData&) = delete;
+
+      ImageData(ImageData&&) = default;
+
+      ImageData& operator=(ImageData&&) = default;
+
       void upload(const CommandPool& cmd_pool, const void* data, const VkDeviceSize size, VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT);
 
     }; // struct ImageData

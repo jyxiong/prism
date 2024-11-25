@@ -19,7 +19,7 @@ namespace prism
 
     Fence& operator=(Fence&&) = delete;
 
-    void wait(uint64_t timeout = UINT64_MAX);
+    void wait(uint64_t timeout = UINT64_MAX) const;
 
     void reset();
 

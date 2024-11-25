@@ -7,22 +7,67 @@
 #include "prism/vulkan/utils.h"
 #include "prism/vulkan/shader_stage.h"
 
-const int MAX_FRAMES_IN_FLIGHT = 2;
-
 Renderer::Renderer() {
   create_window();
   create_instance();
   create_device();
   create_surface();
   create_swapchain();
-  create_command_pool();
-  create_command_buffer();
-  create_render_target();
+
+  create_render_frame();
   create_sync_object();
+
   create_render_pass();
   create_pipeline();
   create_framebuffer();
   // create_descriptors();
+}
+
+bool Renderer::prepare() {
+  return true;
+}
+
+void Renderer::update() {
+  uint32_t image_index;
+  auto result = aquire_image(&image_index);
+
+  if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+    resize();
+    return;
+  } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+    throw std::runtime_error("failed to acquire swapchain image!");
+  }
+
+  render_image(image_index);
+
+  result = present_image(image_index);
+
+  const auto &extent = m_window->get_extent();
+  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_extent.width != extent.x || m_extent.height != extent.y) {
+    resize();
+  } else if (result != VK_SUCCESS) {
+    throw std::runtime_error("failed to present swapchain image!");
+  }
+}
+
+bool Renderer::resize() {
+  m_device->wait_idle();
+
+  glfwGetFramebufferSize((GLFWwindow *)m_window->get_handle(), (int*)&m_extent.width, (int*)&m_extent.height);
+  while (m_extent.width == 0 || m_extent.height == 0) {
+      glfwGetFramebufferSize((GLFWwindow *)m_window->get_handle(), (int*)&m_extent.width, (int*)&m_extent.height);
+      glfwWaitEvents();
+  }
+
+  m_framebuffers.clear();
+  m_render_frames.clear();
+  m_swapchain.reset();
+
+  create_swapchain();
+  create_render_frame();
+  create_framebuffer();
+
+  return true;
 }
 
 void Renderer::render_loop() {
@@ -30,9 +75,7 @@ void Renderer::render_loop() {
   while (!m_window->should_close()) {
     m_window->process_events();
 
-    draw();
-
-    display();
+    update();
   }
 
   m_device->wait_idle();
@@ -97,45 +140,11 @@ void Renderer::create_swapchain() {
   m_swapchain = std::make_unique<Swapchain>(*m_device, *m_surface, props);
 }
 
-void Renderer::create_render_target() {
-  ImageCreateInfo image_ci{};
-  image_ci.set_extent({m_extent.width, m_extent.height, 1})
-      .set_image_type(VK_IMAGE_TYPE_2D)
-      .set_format(m_swapchain->get_format())
-      .set_usage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                 VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-  ImageViewCreateInfo image_view_ci{};
-  image_view_ci.set_view_type(VK_IMAGE_VIEW_TYPE_2D);
-
-  m_storage_data = std::make_unique<ImageData>(*m_device, image_ci, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image_view_ci);
-
-  auto &queue = m_device->get_queue(m_queue_family_index, 0);
-  utils::submit_commands_to_queue(
-      *m_command_pool, queue, [&](const CommandBuffer &cmd_buffer) {
-        VkImageSubresourceRange subresource_range{};
-        subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        subresource_range.baseMipLevel = 0;
-        subresource_range.levelCount = 1;
-        subresource_range.baseArrayLayer = 0;
-        subresource_range.layerCount = 1;
-        m_storage_data->image->set_layout(cmd_buffer, VK_IMAGE_LAYOUT_GENERAL,
-                                          subresource_range);
-      });
-}
-
-void Renderer::create_command_pool() {
-  m_command_pool = std::make_unique<CommandPool>(
-      *m_device, m_queue_family_index,
-      VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-}
-
-void Renderer::create_command_buffer() {
-  m_command_buffers.reserve(MAX_FRAMES_IN_FLIGHT);
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-    m_command_buffers.emplace_back(*m_command_pool);
+void Renderer::create_render_frame() {
+  m_render_frames.reserve(m_swapchain->get_images().size());
+  for (size_t i = 0; i < m_swapchain->get_images().size(); ++i) {
+    m_render_frames.emplace_back(*m_device, m_swapchain->get_images()[i]);
   }
-
-  m_draw_command_buffer = std::make_unique<CommandBuffer>(*m_command_pool);
 }
 
 void Renderer::create_render_pass() {
@@ -145,7 +154,7 @@ void Renderer::create_render_pass() {
   color_attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   color_attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   color_attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  color_attachments[0].finalLayout = VK_IMAGE_LAYOUT_GENERAL;
+  color_attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
   auto color_attachment_ref = AttachmentReference{};
   color_attachment_ref.attachment = 0;
@@ -214,8 +223,10 @@ void Renderer::create_pipeline() {
 }
 
 void Renderer::create_framebuffer() {
-  m_framebuffer = std::make_unique<Framebuffer>(
-      *m_device, *m_render_pass, *m_storage_data->image_view, m_extent.width, m_extent.height);
+  m_framebuffers.reserve(m_swapchain->get_images().size());
+  for (const auto &render_frame : m_render_frames) {
+    m_framebuffers.emplace_back(*m_device, *m_render_pass, render_frame.get_image_views(), m_extent.width, m_extent.height);
+  }
 }
 
 void Renderer::create_descriptors() {
@@ -245,30 +256,25 @@ void Renderer::create_descriptors() {
 }
 
 void Renderer::create_sync_object() {
-  m_image_availabel_semaphores.reserve(MAX_FRAMES_IN_FLIGHT);
-  m_render_finished_semaphores.reserve(MAX_FRAMES_IN_FLIGHT);
-  m_in_flight_fences.reserve(MAX_FRAMES_IN_FLIGHT);
-
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-    m_image_availabel_semaphores.emplace_back(*m_device);
-    m_render_finished_semaphores.emplace_back(*m_device);
-    m_in_flight_fences.emplace_back(*m_device, VK_FENCE_CREATE_SIGNALED_BIT);
-  }
+  m_image_availabel_semaphores = std::make_unique<Semaphore>(*m_device);
 }
 
-void Renderer::draw()
+void Renderer::render_image(uint32_t image_index)
 {
-  auto &queue = m_device->get_queue(m_queue_family_index, 0);
+  auto& frame = m_render_frames[image_index];
+  auto& cmd_buffer = frame.request_command_buffer(
+      m_device->get_queue(m_queue_family_index, 0));
 
-  m_draw_command_buffer->reset();
+  cmd_buffer.reset();
 
-  m_draw_command_buffer->begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+  cmd_buffer.begin(
+      VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
   // render pass begin
   VkRenderPassBeginInfo render_pass_bi{};
   render_pass_bi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   render_pass_bi.renderPass = m_render_pass->get_handle();
-  render_pass_bi.framebuffer = m_framebuffer->get_handle();
+  render_pass_bi.framebuffer = m_framebuffers[image_index].get_handle();
   render_pass_bi.renderArea.offset = {0, 0};
   render_pass_bi.renderArea.extent = m_extent;
   
@@ -278,12 +284,12 @@ void Renderer::draw()
   render_pass_bi.clearValueCount = clear_values.size();
   render_pass_bi.pClearValues = clear_values.data();
 
-  m_draw_command_buffer->begin_render_pass(
+  cmd_buffer.begin_render_pass(
       render_pass_bi, VK_SUBPASS_CONTENTS_INLINE);
 
-  m_draw_command_buffer->bind_pipeline(*m_graphic_pipeline);
+  cmd_buffer.bind_pipeline(*m_graphic_pipeline);
 
-  // m_command_buffers[m_current_frame].bind_descriptor_set(
+  // cmd_buffer.bind_descriptor_set(
   //     VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline_layout->get_handle(),
   //     m_descriptor_set->get_handle());
 
@@ -294,195 +300,83 @@ void Renderer::draw()
   viewport.height = static_cast<float>(m_extent.height);
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
-  m_draw_command_buffer->set_viewport(viewport);
+  cmd_buffer.set_viewport(viewport);
 
   VkRect2D scissor{};
   scissor.offset = {0, 0};
   scissor.extent = m_extent;
-  m_draw_command_buffer->set_scissor(scissor);
+  cmd_buffer.set_scissor(scissor);
 
-  m_draw_command_buffer->draw(3, 1, 0, 0);
+  cmd_buffer.draw(3, 1, 0, 0);
 
-  m_draw_command_buffer->end_render_pass();
+  cmd_buffer.end_render_pass();
 
-  m_draw_command_buffer->end();
-
-  queue.submit(*m_draw_command_buffer);
-
-  queue.wait_idle();
-}
-
-void Renderer::display() {
-  m_in_flight_fences[m_current_frame].wait();
-
-  uint32_t image_index;
-  auto result = vkAcquireNextImageKHR(
-      m_device->get_handle(), m_swapchain->get_handle(), UINT64_MAX,
-      m_image_availabel_semaphores[m_current_frame].get_handle(),
-      VK_NULL_HANDLE, &image_index);
-
-  if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-    recreate_swapchain();
-    return;
-  } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-    throw std::runtime_error("failed to acquire swapchain image!");
-  }
-
-  m_in_flight_fences[m_current_frame].reset();
-
-  m_command_buffers[m_current_frame].reset();
-
-  m_command_buffers[m_current_frame].begin(
-      VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-  VkImageMemoryBarrier image_memory_barrier{};
-  image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  image_memory_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  image_memory_barrier.subresourceRange.layerCount = 1;
-  image_memory_barrier.subresourceRange.levelCount = 1;
-
-  // transition storage image layout to transfer source
-  image_memory_barrier.srcAccessMask = 0;
-  image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-  image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-  image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-  image_memory_barrier.image = m_storage_data->image->get_handle();
-
-  m_command_buffers[m_current_frame].pipeline_barrier(
-      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
-      {}, {}, {image_memory_barrier});
-
-  // transition swapchain image layout to transfer destination
-  auto &swapchain_image = m_swapchain->get_images()[image_index];
-  image_memory_barrier.srcAccessMask = 0;
-  image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-  image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-  image_memory_barrier.image = swapchain_image.get_handle();
-
-  m_command_buffers[m_current_frame].pipeline_barrier(
-      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
-      {}, {}, {image_memory_barrier});
-
-  // copy storage image to swapchain image
-  VkImageCopy image_copy{};
-  image_copy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  image_copy.srcSubresource.layerCount = 1;
-  image_copy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  image_copy.dstSubresource.layerCount = 1;
-  image_copy.extent.width = m_extent.width;
-  image_copy.extent.height = m_extent.height;
-  image_copy.extent.depth = 1;
-
-  m_command_buffers[m_current_frame].copy_image(*m_storage_data->image,
-                                                swapchain_image, {image_copy});
-
-  //  transition swapchain image layout to present source
-  image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-  image_memory_barrier.dstAccessMask = 0;
-  image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-  image_memory_barrier.image = swapchain_image.get_handle();
-
-  m_command_buffers[m_current_frame].pipeline_barrier(
-      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
-      {}, {}, {image_memory_barrier});
-
-  // transition storage image layout to general
-  image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-  image_memory_barrier.dstAccessMask = 0;
-  image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-  image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-  image_memory_barrier.image = m_storage_data->image->get_handle();
-
-  m_command_buffers[m_current_frame].pipeline_barrier(
-      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
-      {}, {}, {image_memory_barrier});
-
-  m_command_buffers[m_current_frame].end();
+  cmd_buffer.end();
 
   auto &queue = m_device->get_queue(m_queue_family_index, 0);
-  // queue.submit(m_command_buffers[m_current_frame]);
+  // queue.submit(cmd_buffer);
 
   // submit command buffer
   VkSubmitInfo submit_info{};
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submit_info.commandBufferCount = 1;
   submit_info.pCommandBuffers =
-      &m_command_buffers[m_current_frame].get_handle();
+      &cmd_buffer.get_handle();
   // wait semaphore
   VkSemaphore wait_semaphores[] = {
-      m_image_availabel_semaphores[m_current_frame].get_handle()};
+      m_image_availabel_semaphores->get_handle()};
   submit_info.waitSemaphoreCount = 1;
   submit_info.pWaitSemaphores = wait_semaphores;
   // signal semaphore
-  VkSemaphore signal_semaphores[] = {
-      m_render_finished_semaphores[m_current_frame].get_handle()};
+  VkSemaphore signal_semaphores = frame.get_semaphore().get_handle();
   submit_info.signalSemaphoreCount = 1;
-  submit_info.pSignalSemaphores = signal_semaphores;
+  submit_info.pSignalSemaphores = &signal_semaphores;
   // wait stage
   VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
   submit_info.pWaitDstStageMask = wait_stages;
 
   if (vkQueueSubmit(queue.get_handle(), 1, &submit_info,
-                    m_in_flight_fences[m_current_frame].get_handle()) !=
+                    frame.get_fence().get_handle()) !=
       VK_SUCCESS) {
     throw std::runtime_error("failed to submit draw command buffer!");
   }
 
-  vkQueueWaitIdle(queue.get_handle());
+  queue.wait_idle();
+}
+
+VkResult Renderer::present_image(uint32_t image_index)
+{
+  auto& frame = m_render_frames[image_index];
+
+  VkSemaphore signal_semaphores = frame.get_semaphore().get_handle();
 
   // present
   VkPresentInfoKHR present_info{};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   present_info.waitSemaphoreCount = 1;
-  present_info.pWaitSemaphores = signal_semaphores;
+  present_info.pWaitSemaphores = &signal_semaphores;
   VkSwapchainKHR swapchains[] = {m_swapchain->get_handle()};
   present_info.swapchainCount = 1;
   present_info.pSwapchains = swapchains;
   present_info.pImageIndices = &image_index;
 
-  result = vkQueuePresentKHR(queue.get_handle(), &present_info);
+  auto &queue = m_device->get_queue(m_queue_family_index, 0);
+  auto result = vkQueuePresentKHR(queue.get_handle(), &present_info);
 
-  const auto &extent = m_window->get_extent();
-  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_extent.width != extent.x || m_extent.height != extent.y) {
-    recreate_swapchain();
-  } else if (result != VK_SUCCESS) {
-    throw std::runtime_error("failed to present swapchain image!");
-  }
-
-  m_current_frame = (m_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+  return result;
 }
 
-void Renderer::recreate_swapchain() {
-  m_device->wait_idle();
+VkResult Renderer::aquire_image(uint32_t *image_idx) {
 
-  glfwGetFramebufferSize((GLFWwindow *)m_window->get_handle(), (int*)&m_extent.width, (int*)&m_extent.height);
-  while (m_extent.width == 0 || m_extent.height == 0) {
-      glfwGetFramebufferSize((GLFWwindow *)m_window->get_handle(), (int*)&m_extent.width, (int*)&m_extent.height);
-      glfwWaitEvents();
-  }
+  auto result = vkAcquireNextImageKHR(
+      m_device->get_handle(), m_swapchain->get_handle(), UINT64_MAX,
+      m_image_availabel_semaphores->get_handle(),
+      VK_NULL_HANDLE, image_idx);
 
-  m_framebuffer.reset();
-  // m_framebuffers.clear();
-  m_swapchain.reset();
-  m_storage_data.reset();
-  // m_image_availabel_semaphores.clear();
-  // m_render_finished_semaphores.clear();
-  // m_in_flight_fences.clear();
-  // m_command_buffers.clear();
-  // m_draw_command_buffer.reset();
-  // m_command_pool.reset();
+  auto& frame = m_render_frames[*image_idx];
+  frame.get_fence().wait();
+  frame.get_fence().reset();
 
-  m_current_frame = 0;
-
-  create_swapchain();
-  // create_command_pool();
-  // create_command_buffer();
-  create_render_target();
-  // create_sync_object();
-  // create_render_pass();
-  // create_pipeline();
-  create_framebuffer();
-  // create_descriptors();
+  return result;
 }
+
