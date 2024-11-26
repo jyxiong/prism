@@ -7,7 +7,7 @@ Window::Window(const Properties &properties)
 {
 }
 
-glm::ivec2 Window::resize(const glm::ivec2 &extent)
+glm::uvec2 Window::resize(const glm::uvec2 &extent)
 {
     if (m_properties.resizable)
     {
@@ -17,7 +17,7 @@ glm::ivec2 Window::resize(const glm::ivec2 &extent)
     return m_properties.extent;
 }
 
-const glm::ivec2 &Window::get_extent() const
+const glm::uvec2 &Window::get_extent() const
 {
     return m_properties.extent;
 }

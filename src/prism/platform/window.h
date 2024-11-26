@@ -29,7 +29,7 @@ namespace prism
             Mode mode = Mode::Default;
             bool resizable = true;
             Vsync vsync = Vsync::Default;
-            glm::ivec2 extent = {1280, 720};
+            glm::uvec2 extent = {1280, 720};
         };
 
     public:
@@ -49,9 +49,9 @@ namespace prism
 
         virtual VkSurfaceKHR create_surface(const Instance& instance) const = 0;
 
-        glm::ivec2 resize(const glm::ivec2 &extent);
+        glm::uvec2 resize(const glm::uvec2 &extent);
 
-        const glm::ivec2 &get_extent() const;
+        const glm::uvec2 &get_extent() const;
 
     protected:
         Properties m_properties;
