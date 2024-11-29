@@ -23,13 +23,13 @@ public:
 
   uint32_t get_active_frame_index() const;
 
-  void resize(const VkExtent2D& extent);
+  void update(const VkExtent2D& extent);
 
-  VkResult aquire();
+  VkResult prepare_frame();
 
   void render(const CommandBuffer &cmd_buffer, const std::function<void(const CommandBuffer&)> &record_func);
 
-  VkResult present();
+  VkResult present_frame();
 
 private:
   void create_swapchain();
@@ -37,6 +37,8 @@ private:
   void create_render_frames();
 
   void create_sync_objects();
+
+  void recreate();
 
 private:
   const Surface &m_surface;

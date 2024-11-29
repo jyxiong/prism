@@ -140,6 +140,14 @@ VkResult Swapchain::acquire_next_image(uint64_t time_out,
                                &image_index);
 }
 
+VkResult Swapchain::acquire_next_image(uint64_t time_out,
+                                       const Semaphore &semaphore,
+                                       uint32_t &image_index) {
+  return vkAcquireNextImageKHR(m_device.get_handle(), m_handle, time_out,
+                               semaphore.get_handle(), VK_NULL_HANDLE,
+                               &image_index);
+}
+
 SwapchainSupportDetails query_swapchain_support(const Device &device, const Surface &surface)
 {
   SwapchainSupportDetails details;

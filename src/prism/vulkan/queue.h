@@ -3,6 +3,7 @@
 namespace prism
 {
   class CommandBuffer;
+  class Fence;
 
   class Queue
   {
@@ -31,7 +32,9 @@ namespace prism
 
     void submit(const CommandBuffer &cmd_buffer, VkFence fence = VK_NULL_HANDLE) const;
 
-    void present(const VkPresentInfoKHR &present_info) const;
+    void submit(const VkSubmitInfo& info, const Fence& fence) const;
+
+    VkResult present(const VkPresentInfoKHR &present_info) const;
 
     void wait_idle() const;
 

@@ -28,33 +28,25 @@ RenderFrame &RenderContext::get_active_frame() {
   return m_render_frames[m_active_frame_index];
 }
 
-void RenderContext::resize(const VkExtent2D &extent) {
+void RenderContext::update(const VkExtent2D &extent) {
   m_extent = extent;
 
-  // TODO: implement update render target in render frame
-  m_render_frames.clear();
-  m_swapchain.reset();
-
-  create_swapchain();
-  create_render_frames();
+  recreate();
 }
 
-VkResult RenderContext::aquire() {
-  auto result = vkAcquireNextImageKHR(
-      m_device.get_handle(), m_swapchain->get_handle(), UINT64_MAX,
-      m_image_availabel_semaphores->get_handle(), VK_NULL_HANDLE, &m_active_frame_index);
+VkResult RenderContext::prepare_frame() {
+  auto result = m_swapchain->acquire_next_image(
+      UINT64_MAX, *m_image_availabel_semaphores, m_active_frame_index);
 
-  auto &frame = m_render_frames[m_active_frame_index];
-  frame.get_fence().wait();
-  frame.get_fence().reset();
+  m_render_frames[m_active_frame_index].reset();
 
   return result;
 }
 
-void RenderContext::render(const CommandBuffer &cmd_buffer, const std::function<void(const CommandBuffer &cmd_buffer)> &record_func) {
+void RenderContext::render(
+    const CommandBuffer &cmd_buffer,
+    const std::function<void(const CommandBuffer &cmd_buffer)> &record_func) {
   auto &frame = m_render_frames[m_active_frame_index];
-  
-  cmd_buffer.reset();
 
   cmd_buffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -82,15 +74,11 @@ void RenderContext::render(const CommandBuffer &cmd_buffer, const std::function<
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
   submit_info.pWaitDstStageMask = wait_stages;
 
-  if (vkQueueSubmit(m_queue.get_handle(), 1, &submit_info,
-                    frame.get_fence().get_handle()) != VK_SUCCESS) {
-    throw std::runtime_error("failed to submit draw command buffer!");
-  }
-
+  m_queue.submit(submit_info, frame.get_fence());
   m_queue.wait_idle();
 }
 
-VkResult RenderContext::present() {
+VkResult RenderContext::present_frame() {
   auto &frame = m_render_frames[m_active_frame_index];
 
   VkSemaphore signal_semaphores = frame.get_semaphore().get_handle();
@@ -105,9 +93,7 @@ VkResult RenderContext::present() {
   present_info.pSwapchains = swapchains;
   present_info.pImageIndices = &m_active_frame_index;
 
-  auto result = vkQueuePresentKHR(m_queue.get_handle(), &present_info);
-
-  return result;
+  return m_queue.present(present_info);
 }
 
 void RenderContext::create_swapchain() {
@@ -129,4 +115,16 @@ void RenderContext::create_render_frames() {
 
 void RenderContext::create_sync_objects() {
   m_image_availabel_semaphores = std::make_unique<Semaphore>(m_device);
+}
+
+void RenderContext::recreate() {
+
+  // TODO: implement update render target in render frame
+  m_image_availabel_semaphores.reset();
+  m_render_frames.clear();
+  m_swapchain.reset();
+
+  create_swapchain();
+  create_render_frames();
+  create_sync_objects();
 }

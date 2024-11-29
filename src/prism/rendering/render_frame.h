@@ -32,6 +32,8 @@ public:
 
   CommandBuffer &request_command_buffer(const Queue &queue);
 
+  void reset();
+
 private:
   CommandPool &get_command_pool(const Queue &queue);
 

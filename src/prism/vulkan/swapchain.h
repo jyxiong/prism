@@ -66,6 +66,8 @@ namespace prism
     const std::vector<SwapchainImage> &get_images() const;
 
     VkResult acquire_next_image(uint64_t time_out, const Semaphore& semaphore, const Fence& fence, uint32_t &image_index);
+    
+    VkResult acquire_next_image(uint64_t time_out, const Semaphore& semaphore, uint32_t &image_index);
 
   private:
     VkSwapchainKHR m_handle{};

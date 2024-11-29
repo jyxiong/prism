@@ -1,6 +1,7 @@
 #include "prism/vulkan/queue.h"
 
 #include "prism/vulkan/command_buffer.h"
+#include "prism/vulkan/fence.h"
 
 using namespace prism;
 
@@ -57,9 +58,14 @@ void Queue::submit(const CommandBuffer &cmd_buffer, VkFence fence) const
 	VK_CHECK(vkQueueSubmit(m_handle, 1, &submit_info, fence));
 }
 
-void Queue::present(const VkPresentInfoKHR &present_info) const
+void Queue::submit(const VkSubmitInfo &info, const Fence &fence) const
 {
-	VK_CHECK(vkQueuePresentKHR(m_handle, &present_info));
+	VK_CHECK(vkQueueSubmit(m_handle, 1, &info, fence.get_handle()));
+}
+
+VkResult Queue::present(const VkPresentInfoKHR &present_info) const
+{
+	return vkQueuePresentKHR(m_handle, &present_info);
 }
 
 void Queue::wait_idle() const

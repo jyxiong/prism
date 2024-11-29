@@ -51,3 +51,14 @@ CommandPool &RenderFrame::get_command_pool(const Queue &queue) {
   }
   return *m_cmd_pools[queue.get_family_index()];
 }
+
+void RenderFrame::reset()
+{
+  m_fence->wait();
+  m_fence->reset();
+
+  for (auto &cmd_pool : m_cmd_pools)
+  {
+    cmd_pool.second->reset();
+  }
+}

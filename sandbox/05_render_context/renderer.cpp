@@ -26,7 +26,7 @@ void Renderer::render_loop() {
   while (!m_window->should_close()) {
     m_window->process_events();
 
-    auto result = m_render_context->aquire();
+    auto result = m_render_context->prepare_frame();
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
       resize();
@@ -37,7 +37,7 @@ void Renderer::render_loop() {
 
     render_image();
 
-    result = m_render_context->present();
+    result = m_render_context->present_frame();
     const auto &extent = m_window->get_extent();
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
         m_extent.width != extent.x || m_extent.height != extent.y) {
@@ -235,7 +235,7 @@ bool Renderer::resize() {
 
   m_framebuffers.clear();
 
-  m_render_context->resize(m_extent);
+  m_render_context->update(m_extent);
 
   create_framebuffer();
 
