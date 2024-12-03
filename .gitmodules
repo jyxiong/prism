@@ -16,15 +16,9 @@
 [submodule "external/glslang"]
 	path = external/glslang
 	url = git@github.com:KhronosGroup/glslang.git
-[submodule "external/volk"]
-	path = external/volk
-	url = git@github.com:zeux/volk.git
 [submodule "external/Vulkan-Headers"]
 	path = external/Vulkan-Headers
 	url = git@github.com:KhronosGroup/Vulkan-Headers.git
-[submodule "external/VulkanMemoryAllocator"]
-	path = external/VulkanMemoryAllocator
-	url = git@github.com:GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
 [submodule "external/fmt"]
 	path = external/fmt
 	url = git@github.com:fmtlib/fmt.git
