@@ -15,6 +15,14 @@ namespace prism
     
     ~BufferData();
 
+    BufferData(const BufferData&) = delete;
+
+    BufferData& operator=(const BufferData&) = delete;
+
+    BufferData(BufferData&& other) = default;
+
+    BufferData& operator=(BufferData&& other) = delete;
+
     void upload(const void* data, VkDeviceSize size, VkDeviceSize offset = 0);
   
     void upload(const CommandPool& cmd_pool, const void* data, VkDeviceSize size, VkDeviceSize offset = 0);

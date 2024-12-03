@@ -289,10 +289,6 @@ void Renderer::render_image(uint32_t image_index)
 
   cmd_buffer.bind_pipeline(*m_graphic_pipeline);
 
-  // cmd_buffer.bind_descriptor_set(
-  //     VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline_layout->get_handle(),
-  //     m_descriptor_set->get_handle());
-
   VkViewport viewport{};
   viewport.x = 0.0f;
   viewport.y = 0.0f;

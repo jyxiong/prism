@@ -127,10 +127,28 @@ void CommandBuffer::draw(uint32_t vertex_count, uint32_t instance_count,
             first_instance);
 }
 
+void CommandBuffer::draw_indexed(uint32_t index_count, uint32_t instance_count,
+                                 uint32_t first_index, int32_t vertex_offset,
+                                 uint32_t first_instance) const {
+  vkCmdDrawIndexed(m_handle, index_count, instance_count, first_index,
+                   vertex_offset, first_instance);
+}
+
 void CommandBuffer::set_viewport(const VkViewport &viewport) const {
   vkCmdSetViewport(m_handle, 0, 1, &viewport);
 }
 
 void CommandBuffer::set_scissor(const VkRect2D &scissor) const {
   vkCmdSetScissor(m_handle, 0, 1, &scissor);
+}
+
+void CommandBuffer::bind_vertex_buffer(uint32_t binding, const Buffer &buffer,
+                                       VkDeviceSize offset) const {
+  auto vk_buffer = buffer.get_handle();
+  vkCmdBindVertexBuffers(m_handle, binding, 1, &vk_buffer, &offset);
+}
+
+void CommandBuffer::bind_index_buffer(const Buffer &buffer, VkDeviceSize offset,
+                                      VkIndexType index_type) const {
+  vkCmdBindIndexBuffer(m_handle, buffer.get_handle(), offset, index_type);
 }

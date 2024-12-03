@@ -1,20 +1,77 @@
 #include "renderer.h"
 
 #include "stb_image_write.h"
+#include "glm/gtc/matrix_transform.hpp"
 
 #include "prism/platform/glfw_window.h"
 #include "prism/vulkan/device_features.h"
 #include "prism/vulkan/shader_stage.h"
 #include "prism/vulkan/utils.h"
 
+struct UniformMatrix
+{
+  glm::mat4 model;
+  glm::mat4 view;
+  glm::mat4 proj;
+};
+
+struct Vertex {
+    glm::vec3 pos;
+    glm::vec3 color;
+
+    static std::vector<VkVertexInputBindingDescription> getBindingDescription() {
+        std::vector<VkVertexInputBindingDescription> bindingDescription(1);
+        bindingDescription[0].binding = 0;
+        bindingDescription[0].stride = sizeof(Vertex);
+        bindingDescription[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        return bindingDescription;
+    }
+
+    static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(2);
+
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+        return attributeDescriptions;
+    }
+};
+
+const std::vector<Vertex> vertices = {
+    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}}
+};
+
+const std::vector<uint16_t> indices = {
+    0, 1, 2, 2, 3, 0
+};
 
 Renderer::Renderer() {
   create_window();
   create_instance();
   create_device();
   create_surface();
+  create_command_pool();
 
   create_render_context();
+
+  create_uniform_buffer();
+
+  create_vertex_buffer();
+  create_index_buffer();
+
+  create_descriptor_layout();
+  create_descriptors();
 
   create_render_pass();
   create_pipeline();
@@ -35,6 +92,7 @@ void Renderer::render_loop() {
       throw std::runtime_error("failed to acquire swapchain image!");
     }
 
+    update_uniform_buffer();
     render_image();
 
     result = m_render_context->present_frame();
@@ -99,10 +157,24 @@ void Renderer::create_surface() {
   m_surface = std::make_unique<Surface>(*m_instance, *m_window);
 }
 
+void Renderer::create_command_pool() {
+  m_cmd_pool = std::make_unique<CommandPool>(*m_device, m_queue_family_index,
+                                             VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+}
+
 void Renderer::create_render_context() {
   m_render_context = std::make_unique<RenderContext>(*m_window, *m_surface,
                                                      *m_device,
                                                      m_device->get_queue(m_queue_family_index, 0));
+}
+
+void Renderer::create_descriptor_layout()
+{
+  DescriptorSetLayout::Bindings bindings{
+    {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT}
+  };
+
+  m_descriptor_set_layout = std::make_unique<DescriptorSetLayout>(*m_device, bindings);
 }
 
 void Renderer::create_render_pass() {
@@ -166,7 +238,24 @@ void Renderer::create_pipeline() {
   dynamic_state.set_dynamic_states(dynamic_states);
 
   m_pipeline_layout = std::make_unique<PipelineLayout>(
-      *m_device, std::vector<DescriptorSetLayout>());
+      *m_device, *m_descriptor_set_layout);
+
+  RasterizationState rasterization{};
+  rasterization.set_cull_mode(VK_CULL_MODE_BACK_BIT)
+      .set_front_face(VK_FRONT_FACE_COUNTER_CLOCKWISE)
+      .set_polygon_mode(VK_POLYGON_MODE_FILL)
+      .set_line_width(1.0f)
+      .set_rasterizer_discard_enable(VK_FALSE);
+
+  auto binding_descriptions = Vertex::getBindingDescription();
+  auto attribute_descriptions = Vertex::getAttributeDescriptions();
+
+  VertexInputState vertex_input_state{};
+  vertex_input_state.set_binding_descriptions(binding_descriptions)
+      .set_attribute_descriptions(attribute_descriptions);
+
+  InputAssemblyState input_assembly{};
+  input_assembly.set_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
   GraphicsPipelineCreateInfo pipeline_ci{};
   pipeline_ci.set_shader_stages(shader_stages)
@@ -176,12 +265,12 @@ void Renderer::create_pipeline() {
       .set_color_blend_state(color_blend_state)
       .set_dynamic_state(dynamic_state)
       .set_tesellation_state(TessellationState{})
-      .set_input_assembly_state(InputAssemblyState{})
+      .set_input_assembly_state(input_assembly)
       .set_depth_stencil_state(DepthStencilState{})
       .set_multisample_state(MultisampleState{})
-      .set_rasterization_state(RasterizationState{})
+      .set_rasterization_state(rasterization)
       .set_viewport_state(ViewportState{})
-      .set_vertex_input_state(VertexInputState{});
+      .set_vertex_input_state(vertex_input_state);
   m_graphic_pipeline =
       std::make_unique<GraphicsPipeline>(*m_device, pipeline_ci);
 }
@@ -197,29 +286,79 @@ void Renderer::create_framebuffer() {
 }
 
 void Renderer::create_descriptors() {
-  // std::vector<VkDescriptorPoolSize> pool_sizes{
-  //     {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}};
-  // m_descriptor_pool =
-  //     std::make_unique<DescriptorPool>(*m_device, pool_sizes, 1);
+  const auto frame_count = m_render_context->get_render_frames().size();
 
-  // m_descriptor_set = std::make_unique<DescriptorSet>(
-  //     *m_device, *m_descriptor_set_layout, *m_descriptor_pool);
+  std::vector<VkDescriptorPoolSize> pool_sizes{
+      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (uint32_t)frame_count}};
+  m_descriptor_pool =
+      std::make_unique<DescriptorPool>(*m_device, pool_sizes, (uint32_t)frame_count);
 
-  // VkDescriptorImageInfo image_info{};
-  // image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-  // image_info.imageView = m_storage_data->image_view->get_handle();
-  // image_info.sampler = VK_NULL_HANDLE;
+  m_descriptor_sets.reserve(frame_count);
+  for (size_t i = 0; i < frame_count; i++) {
+    m_descriptor_sets.emplace_back(*m_device, *m_descriptor_set_layout, *m_descriptor_pool);
 
-  // VkWriteDescriptorSet write{};
-  // write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  // write.dstSet = m_descriptor_set->get_handle();
-  // write.dstBinding = 0;
-  // write.dstArrayElement = 0;
-  // write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-  // write.descriptorCount = 1;
-  // write.pImageInfo = &image_info;
+    VkDescriptorBufferInfo buffer_info{};
+    buffer_info.buffer = m_uniform_buffers[i].buffer->get_handle();
+    buffer_info.offset = 0;
+    buffer_info.range = sizeof(UniformMatrix);
+    
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = m_descriptor_sets[i].get_handle();
+    write.dstBinding = 0;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.descriptorCount = 1;
+    write.pBufferInfo = &buffer_info;
 
-  // vkUpdateDescriptorSets(m_device->get_handle(), 1, &write, 0, nullptr);
+    vkUpdateDescriptorSets(m_device->get_handle(), 1, &write, 0, nullptr);
+  }
+}
+
+void Renderer::create_uniform_buffer()
+{
+  m_uniform_buffers.reserve(m_render_context->get_render_frames().size());
+  for (size_t i = 0; i < m_render_context->get_render_frames().size(); i++) {
+    m_uniform_buffers.emplace_back(*m_device, sizeof(UniformMatrix),
+                                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  }
+}
+
+void Renderer::create_vertex_buffer()
+{
+  auto buffer_size = sizeof(vertices[0]) * vertices.size();
+  m_vertex_buffer = std::make_unique<BufferData>(*m_device, buffer_size,
+                                             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+  m_vertex_buffer->upload(*m_cmd_pool, vertices.data(), buffer_size);
+}
+
+void Renderer::create_index_buffer()
+{
+  auto buffer_size = sizeof(indices[0]) * indices.size();
+  m_index_buffer = std::make_unique<BufferData>(*m_device, buffer_size,
+                                            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+  m_index_buffer->upload(*m_cmd_pool, indices.data(), buffer_size);
+}
+
+void Renderer::update_uniform_buffer()
+{
+  static auto startTime = std::chrono::high_resolution_clock::now();
+
+  auto currentTime = std::chrono::high_resolution_clock::now();
+  float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+  UniformMatrix ubo{};
+  ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  ubo.proj = glm::perspective(glm::radians(45.0f), m_extent.width / (float) m_extent.height, 0.1f, 10.0f);
+  ubo.proj[1][1] *= -1;
+
+  m_uniform_buffers[m_render_context->get_active_frame_index()].upload(&ubo, sizeof(UniformMatrix));
 }
 
 bool Renderer::resize() {
@@ -268,6 +407,10 @@ void Renderer::render_image()
 
     cmd_buffer.bind_pipeline(*m_graphic_pipeline);
 
+    cmd_buffer.bind_descriptor_set(
+        VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline_layout->get_handle(),
+        m_descriptor_sets[m_render_context->get_active_frame_index()].get_handle());
+
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
@@ -282,7 +425,11 @@ void Renderer::render_image()
     scissor.extent = m_extent;
     cmd_buffer.set_scissor(scissor);
 
-    cmd_buffer.draw(3, 1, 0, 0);
+    cmd_buffer.bind_vertex_buffer(0, *m_vertex_buffer->buffer, 0);
+
+    cmd_buffer.bind_index_buffer(*m_index_buffer->buffer, 0, VK_INDEX_TYPE_UINT16);
+
+    cmd_buffer.draw_indexed(indices.size(), 1, 0, 0, 0);
 
     cmd_buffer.end_render_pass();
 

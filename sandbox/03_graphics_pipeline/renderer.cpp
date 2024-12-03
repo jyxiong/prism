@@ -283,10 +283,6 @@ void Renderer::draw()
 
   m_draw_command_buffer->bind_pipeline(*m_graphic_pipeline);
 
-  // m_command_buffers[m_current_frame].bind_descriptor_set(
-  //     VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline_layout->get_handle(),
-  //     m_descriptor_set->get_handle());
-
   VkViewport viewport{};
   viewport.x = 0.0f;
   viewport.y = 0.0f;
