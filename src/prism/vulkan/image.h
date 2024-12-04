@@ -75,6 +75,8 @@ namespace prism
 
     void set_layout(const CommandBuffer &cmd_buffer, VkImageLayout new_layout, VkImageSubresourceRange subresource_range);
 
+    void set_layout(const CommandBuffer &cmd_buffer, VkImageLayout new_layout, VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT);
+
   protected:
     const Device &m_device;
 

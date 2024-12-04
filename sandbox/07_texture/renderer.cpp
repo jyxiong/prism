@@ -19,6 +19,7 @@ struct UniformMatrix
 struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
+    glm::vec2 texCoord;
 
     static std::vector<VkVertexInputBindingDescription> getBindingDescription() {
         std::vector<VkVertexInputBindingDescription> bindingDescription(1);
@@ -30,7 +31,7 @@ struct Vertex {
     }
 
     static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
-        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(2);
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(3);
 
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
@@ -42,15 +43,20 @@ struct Vertex {
         attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescriptions[1].offset = offsetof(Vertex, color);
 
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
         return attributeDescriptions;
     }
 };
 
 const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}}
+    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 };
 
 const std::vector<uint16_t> indices = {
@@ -65,6 +71,8 @@ Renderer::Renderer() {
   create_command_pool();
 
   create_render_context();
+
+  create_texture();
 
   create_uniform_buffer();
 
@@ -172,7 +180,8 @@ void Renderer::create_render_context() {
 void Renderer::create_descriptor_layout()
 {
   DescriptorSetLayout::Bindings bindings{
-    {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT}
+    {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+    {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT}
   };
 
   m_descriptor_set_layout = std::make_unique<DescriptorSetLayout>(*m_device, bindings);
@@ -290,7 +299,8 @@ void Renderer::create_descriptors() {
   const auto frame_count = m_render_context->get_render_frames().size();
 
   std::vector<VkDescriptorPoolSize> pool_sizes{
-      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (uint32_t)frame_count}};
+      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (uint32_t)frame_count},
+      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (uint32_t)frame_count}};
   m_descriptor_pool =
       std::make_unique<DescriptorPool>(*m_device, pool_sizes, (uint32_t)frame_count);
 
@@ -302,16 +312,28 @@ void Renderer::create_descriptors() {
     buffer_info.buffer = m_uniform_buffers[i].buffer->get_handle();
     buffer_info.offset = 0;
     buffer_info.range = sizeof(UniformMatrix);
-    
-    VkWriteDescriptorSet write{};
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = m_descriptor_sets[i].get_handle();
-    write.dstBinding = 0;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write.descriptorCount = 1;
-    write.pBufferInfo = &buffer_info;
 
-    vkUpdateDescriptorSets(m_device->get_handle(), 1, &write, 0, nullptr);
+    VkDescriptorImageInfo image_info{};
+    image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    image_info.imageView = m_texture->image_view->get_handle();
+    image_info.sampler = m_texture_sampler->get_handle();
+    
+    std::vector<VkWriteDescriptorSet> writes(2);
+    writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[0].dstSet = m_descriptor_sets[i].get_handle();
+    writes[0].dstBinding = 0;
+    writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    writes[0].descriptorCount = 1;
+    writes[0].pBufferInfo = &buffer_info;
+
+    writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[1].dstSet = m_descriptor_sets[i].get_handle();
+    writes[1].dstBinding = 1;
+    writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writes[1].descriptorCount = 1;
+    writes[1].pImageInfo = &image_info;
+
+    vkUpdateDescriptorSets(m_device->get_handle(), writes.size(), writes.data(), 0, nullptr);
   }
 }
 
@@ -324,6 +346,36 @@ void Renderer::create_uniform_buffer()
                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
   }
+}
+
+void Renderer::create_texture()
+{
+  std::vector<glm::u8vec4> texture(256 * 256);
+  for (size_t i = 0; i < 256; i++) {
+    for (size_t j = 0; j < 256; j++) {
+      texture[i * 256 + j] = glm::u8vec4(i, j, 0, 255);
+    }
+  }
+
+  m_texture = utils::create_texture_image_data(*m_device, {256, 256}, VK_FORMAT_R8G8B8A8_UNORM);
+  m_texture->upload(*m_cmd_pool, texture.data(), 256 * 256 * sizeof(glm::u8vec4));
+
+  auto &queue = m_device->get_queue(m_queue_family_index, 0);
+  utils::submit_commands_to_queue(*m_cmd_pool, queue, [&](const CommandBuffer &cmd_buffer) {
+      m_texture->image->set_layout(cmd_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  });
+
+  SamplerCreateInfo sampler_ci{};
+  sampler_ci.set_mag_filter(VK_FILTER_LINEAR)
+      .set_min_filter(VK_FILTER_LINEAR)
+      .set_address_mode_u(VK_SAMPLER_ADDRESS_MODE_REPEAT)
+      .set_address_mode_v(VK_SAMPLER_ADDRESS_MODE_REPEAT)
+      .set_address_mode_w(VK_SAMPLER_ADDRESS_MODE_REPEAT)
+      .set_anisotropy_enable(VK_FALSE)
+      .set_max_anisotropy(1.0f)
+      .set_border_color(VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK)
+      .set_unnormalized_coordinates(VK_FALSE);
+  m_texture_sampler = std::make_unique<Sampler>(*m_device, sampler_ci);
 }
 
 void Renderer::create_vertex_buffer()

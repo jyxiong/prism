@@ -353,3 +353,30 @@ void Image::set_layout(const CommandBuffer &cmd_buffer, VkImageLayout new_layout
 
 	m_layout = new_layout;
 }
+
+void Image::set_layout(const CommandBuffer &cmd_buffer, VkImageLayout new_layout, VkImageAspectFlags aspect)
+{
+	VkImageSubresourceRange subresource_range{};
+	subresource_range.aspectMask = aspect;
+	subresource_range.baseMipLevel = 0;
+	subresource_range.levelCount = get_mip_level_count();
+	subresource_range.baseArrayLayer = 0;
+	subresource_range.layerCount = get_array_layer_count();
+
+	VkImageMemoryBarrier barrier{};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = m_layout;
+	barrier.newLayout = new_layout;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = m_handle;
+	barrier.subresourceRange = subresource_range;
+	barrier.srcAccessMask = access_flags(m_layout);
+	barrier.dstAccessMask = access_flags(new_layout);
+
+	auto src_stage = pipeline_stage_flags(m_layout);
+	auto dst_stage = pipeline_stage_flags(new_layout);
+	cmd_buffer.pipeline_barrier(src_stage, dst_stage, 0, {}, {}, {barrier});
+
+	m_layout = new_layout;
+}
