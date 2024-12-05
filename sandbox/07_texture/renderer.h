@@ -84,9 +84,8 @@ private:
 
   // parameter
   // uniform buffer ...
-  std::unique_ptr<ImageData> m_texture;
-  std::unique_ptr<Sampler> m_texture_sampler;
-  std::vector<BufferData> m_uniform_buffers;
+  std::unique_ptr<Texture> m_texture;
+  std::unique_ptr<BufferData> m_uniform_buffer;
 
   // pipeline parameter
   std::unique_ptr<DescriptorPool> m_descriptor_pool;

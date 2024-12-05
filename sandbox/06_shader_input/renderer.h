@@ -80,7 +80,7 @@ private:
 
   // parameter
   // uniform buffer ...
-  std::vector<BufferData> m_uniform_buffers;
+  std::unique_ptr<BufferData> m_uniform_buffer;
 
   // pipeline parameter
   std::unique_ptr<DescriptorPool> m_descriptor_pool;

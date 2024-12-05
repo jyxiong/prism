@@ -6,6 +6,8 @@
 
 namespace prism::utils {
 
+  std::unique_ptr<BufferData> create_uniform_buffer(const Device &device, VkDeviceSize size);
+
   std::unique_ptr<BufferData> create_vertex_buffer(const Device &device, VkDeviceSize size);
 
   std::unique_ptr<BufferData> create_index_buffer(const Device &device, VkDeviceSize size);

@@ -2,6 +2,13 @@
 
 namespace prism::utils {
 
+std::unique_ptr<BufferData> create_uniform_buffer(const Device &device,
+                                                 VkDeviceSize size) {
+  return std::make_unique<BufferData>(device, size,
+                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+}
+
 std::unique_ptr<BufferData> create_vertex_buffer(const Device &device,
                                                  VkDeviceSize size) {
   return std::make_unique<BufferData>(device, size,

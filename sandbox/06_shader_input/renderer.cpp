@@ -299,7 +299,7 @@ void Renderer::create_descriptors() {
     m_descriptor_sets.emplace_back(*m_device, *m_descriptor_set_layout, *m_descriptor_pool);
 
     VkDescriptorBufferInfo buffer_info{};
-    buffer_info.buffer = m_uniform_buffers[i].buffer->get_handle();
+    buffer_info.buffer = m_uniform_buffer->buffer->get_handle();
     buffer_info.offset = 0;
     buffer_info.range = sizeof(UniformMatrix);
     
@@ -317,13 +317,7 @@ void Renderer::create_descriptors() {
 
 void Renderer::create_uniform_buffer()
 {
-  m_uniform_buffers.reserve(m_render_context->get_render_frames().size());
-  for (size_t i = 0; i < m_render_context->get_render_frames().size(); i++) {
-    m_uniform_buffers.emplace_back(*m_device, sizeof(UniformMatrix),
-                                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  }
+  m_uniform_buffer = utils::create_uniform_buffer(*m_device, sizeof(UniformMatrix));
 }
 
 void Renderer::create_vertex_buffer()
@@ -353,7 +347,7 @@ void Renderer::update_uniform_buffer()
   ubo.proj = glm::perspective(glm::radians(45.0f), m_extent.width / (float) m_extent.height, 0.1f, 10.0f);
   ubo.proj[1][1] *= -1;
 
-  m_uniform_buffers[m_render_context->get_active_frame_index()].upload(&ubo, sizeof(UniformMatrix));
+  m_uniform_buffer->upload(&ubo, sizeof(UniformMatrix));
 }
 
 bool Renderer::resize() {

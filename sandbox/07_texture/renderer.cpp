@@ -309,14 +309,14 @@ void Renderer::create_descriptors() {
     m_descriptor_sets.emplace_back(*m_device, *m_descriptor_set_layout, *m_descriptor_pool);
 
     VkDescriptorBufferInfo buffer_info{};
-    buffer_info.buffer = m_uniform_buffers[i].buffer->get_handle();
+    buffer_info.buffer = m_uniform_buffer->buffer->get_handle();
     buffer_info.offset = 0;
     buffer_info.range = sizeof(UniformMatrix);
 
     VkDescriptorImageInfo image_info{};
     image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     image_info.imageView = m_texture->image_view->get_handle();
-    image_info.sampler = m_texture_sampler->get_handle();
+    image_info.sampler = m_texture->sampler->get_handle();
     
     std::vector<VkWriteDescriptorSet> writes(2);
     writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -339,13 +339,7 @@ void Renderer::create_descriptors() {
 
 void Renderer::create_uniform_buffer()
 {
-  m_uniform_buffers.reserve(m_render_context->get_render_frames().size());
-  for (size_t i = 0; i < m_render_context->get_render_frames().size(); i++) {
-    m_uniform_buffers.emplace_back(*m_device, sizeof(UniformMatrix),
-                                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  }
+  m_uniform_buffer = utils::create_uniform_buffer(*m_device, sizeof(UniformMatrix));
 }
 
 void Renderer::create_texture()
@@ -357,25 +351,13 @@ void Renderer::create_texture()
     }
   }
 
-  m_texture = utils::create_texture_image_data(*m_device, {256, 256}, VK_FORMAT_R8G8B8A8_UNORM);
+  m_texture = std::make_unique<Texture>(*m_device, VkExtent2D{256, 256}, VK_FORMAT_R8G8B8A8_UNORM);
   m_texture->upload(*m_cmd_pool, texture.data(), 256 * 256 * sizeof(glm::u8vec4));
 
   auto &queue = m_device->get_queue(m_queue_family_index, 0);
   utils::submit_commands_to_queue(*m_cmd_pool, queue, [&](const CommandBuffer &cmd_buffer) {
       m_texture->image->set_layout(cmd_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   });
-
-  SamplerCreateInfo sampler_ci{};
-  sampler_ci.set_mag_filter(VK_FILTER_LINEAR)
-      .set_min_filter(VK_FILTER_LINEAR)
-      .set_address_mode_u(VK_SAMPLER_ADDRESS_MODE_REPEAT)
-      .set_address_mode_v(VK_SAMPLER_ADDRESS_MODE_REPEAT)
-      .set_address_mode_w(VK_SAMPLER_ADDRESS_MODE_REPEAT)
-      .set_anisotropy_enable(VK_FALSE)
-      .set_max_anisotropy(1.0f)
-      .set_border_color(VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK)
-      .set_unnormalized_coordinates(VK_FALSE);
-  m_texture_sampler = std::make_unique<Sampler>(*m_device, sampler_ci);
 }
 
 void Renderer::create_vertex_buffer()
@@ -405,7 +387,7 @@ void Renderer::update_uniform_buffer()
   ubo.proj = glm::perspective(glm::radians(45.0f), m_extent.width / (float) m_extent.height, 0.1f, 10.0f);
   ubo.proj[1][1] *= -1;
 
-  m_uniform_buffers[m_render_context->get_active_frame_index()].upload(&ubo, sizeof(UniformMatrix));
+  m_uniform_buffer->upload(&ubo, sizeof(UniformMatrix));
 }
 
 bool Renderer::resize() {
