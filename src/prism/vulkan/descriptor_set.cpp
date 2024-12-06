@@ -16,14 +16,6 @@ DescriptorSet::DescriptorSet(const Device &device, const DescriptorSetLayout& la
   VK_CHECK(vkAllocateDescriptorSets(device.get_handle(), &alloc_info, &m_handle));
 }
 
-DescriptorSet::DescriptorSet(DescriptorSet &&other) noexcept
-    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
-      m_device(other.m_device),
-      m_layout(other.m_layout),
-      m_pool(other.m_pool)
-{
-}
-
 DescriptorSet::~DescriptorSet()
 {
   if (m_handle != VK_NULL_HANDLE)
@@ -32,7 +24,20 @@ DescriptorSet::~DescriptorSet()
   }
 }
 
-void DescriptorSet::update(const std::vector<VkDescriptorBufferInfo> &buffer_infos)
+DescriptorSet::DescriptorSet(DescriptorSet &&other) noexcept
+    : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
+      m_device(other.m_device),
+      m_layout(other.m_layout),
+      m_pool(other.m_pool)
+{
+}
+
+const VkDescriptorSet& DescriptorSet::get_handle() const
+{
+  return m_handle;
+}
+
+void DescriptorSet::write(const std::vector<VkDescriptorBufferInfo> &buffer_infos)
 {
   std::vector<VkWriteDescriptorSet> writes;
   writes.reserve(buffer_infos.size());
@@ -54,7 +59,21 @@ void DescriptorSet::update(const std::vector<VkDescriptorBufferInfo> &buffer_inf
   vkUpdateDescriptorSets(m_device.get_handle(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
 
-const VkDescriptorSet& DescriptorSet::get_handle() const
+void DescriptorSet::write(const std::vector<DescriptorBuffer> &buffers, const std::vector<DescriptorImage> &images)
 {
-  return m_handle;
+  std::vector<VkWriteDescriptorSet> writes(buffers.size() + images.size());
+
+  for (size_t i = 0; i < buffers.size(); i++)
+  {
+    auto &write = writes[i];
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = m_handle;
+    write.dstBinding = buffers[i].binding;
+    write.dstArrayElement = buffers[i].array_element;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.descriptorCount = 1;
+    write.pBufferInfo = &buffers[i].info;
+  }
+
+  vkUpdateDescriptorSets(m_device.get_handle(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }

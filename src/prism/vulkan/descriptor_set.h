@@ -3,6 +3,7 @@
 #include "prism/vulkan/device.h"
 #include "prism/vulkan/descriptor_set_layout.h"
 #include "prism/vulkan/descriptor_pool.h"
+#include "prism/vulkan/descriptor.h"
 
 namespace prism
 {
@@ -11,19 +12,21 @@ namespace prism
   public:
     DescriptorSet(const Device &device, const DescriptorSetLayout& layout, const DescriptorPool& pool);
 
+    ~DescriptorSet();
+
     DescriptorSet(const DescriptorSet &) = delete;
 
     DescriptorSet(DescriptorSet &&other) noexcept;
-
-    ~DescriptorSet();
 
     DescriptorSet& operator=(const DescriptorSet &) = delete;
 
     DescriptorSet& operator=(DescriptorSet &&) = delete;
 
-    void update(const std::vector<VkDescriptorBufferInfo> &buffer_infos);
-
     const VkDescriptorSet& get_handle() const;
+
+    void write(const std::vector<VkDescriptorBufferInfo> &buffer_infos);
+
+    void write(const std::vector<DescriptorBuffer> &buffers, const std::vector<DescriptorImage> &images);
 
   private:
     VkDescriptorSet m_handle;

@@ -46,17 +46,17 @@ std::unique_ptr<ImageData> create_color_image_data(const Device &device,
 }
 
 std::unique_ptr<ImageData> create_depth_image_data(const Device &device,
-                                                   const VkExtent2D &extent) {
+                                                   const VkExtent2D &extent, VkFormat format) {
   ImageCreateInfo create_info{};
   create_info.set_image_type(VK_IMAGE_TYPE_2D)
-      .set_format(VK_FORMAT_D32_SFLOAT)
+      .set_format(format)
       .set_extent({extent.width, extent.height, 1})
       .set_usage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
       .set_initial_layout(VK_IMAGE_LAYOUT_UNDEFINED);
 
   ImageViewCreateInfo view_create_info{};
   view_create_info.set_view_type(VK_IMAGE_VIEW_TYPE_2D)
-      .set_format(VK_FORMAT_D32_SFLOAT)
+      .set_format(format)
       .set_aspect_mask(VK_IMAGE_ASPECT_DEPTH_BIT);
 
   return std::make_unique<ImageData>(device, create_info,

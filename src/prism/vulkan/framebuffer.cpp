@@ -37,6 +37,28 @@ Framebuffer::Framebuffer(const Device &device, const RenderPass &render_pass, co
   VK_CHECK(vkCreateFramebuffer(m_device.get_handle(), &create_info, nullptr, &m_handle));
 }
 
+Framebuffer::Framebuffer(const Device &device, const RenderPass &render_pass, const std::vector<ImageView>& color_attachments, const ImageView& depth_attachment, uint32_t width, uint32_t height, uint32_t layers)
+    : m_device(device) {
+  std::vector<VkImageView> vk_attachments;
+  vk_attachments.reserve(color_attachments.size());
+  for (const auto &attachment : color_attachments) {
+    vk_attachments.push_back(attachment.get_handle());
+  }
+
+  vk_attachments.push_back(depth_attachment.get_handle());
+
+  VkFramebufferCreateInfo create_info = {};
+  create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+  create_info.renderPass = render_pass.get_handle();
+  create_info.attachmentCount = static_cast<uint32_t>(vk_attachments.size());
+  create_info.pAttachments = vk_attachments.data();
+  create_info.width = width;
+  create_info.height = height;
+  create_info.layers = layers;
+
+  VK_CHECK(vkCreateFramebuffer(m_device.get_handle(), &create_info, nullptr, &m_handle));
+}
+
 Framebuffer::Framebuffer(Framebuffer &&other) noexcept
     : m_handle(std::exchange(other.m_handle, VK_NULL_HANDLE)),
       m_device(other.m_device) {}

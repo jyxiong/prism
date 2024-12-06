@@ -13,6 +13,8 @@ namespace prism
       
       Framebuffer(const Device &device, const RenderPass &render_pass, const std::vector<ImageView>& attachments, uint32_t width, uint32_t height, uint32_t layers = 1);
       
+      Framebuffer(const Device &device, const RenderPass &render_pass, const std::vector<ImageView>& color_attachments, const ImageView& depth_attachment, uint32_t width, uint32_t height, uint32_t layers = 1);
+      
       ~Framebuffer();
 
       Framebuffer(const Framebuffer &) = delete;

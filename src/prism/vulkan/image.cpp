@@ -219,6 +219,11 @@ const VkMemoryRequirements &Image::get_memory_requirements() const
 	return m_memory_requirements;
 }
 
+const VkImageLayout &Image::get_layout() const
+{
+	return m_layout;
+}
+
 void Image::bind_memory(const DeviceMemory& memory, VkDeviceSize offset) const
 {
 	VK_CHECK(vkBindImageMemory(m_device.get_handle(), m_handle, memory.get_handle(), offset));

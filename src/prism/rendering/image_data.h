@@ -76,4 +76,25 @@ struct ColorAttachment {
 
 }; // struct ColorAttachment
 
+struct DepthAttachment
+{
+  VkFormat format;
+  std::unique_ptr<Image> image;
+  std::unique_ptr<DeviceMemory> device_memory;
+  std::unique_ptr<ImageView> image_view;
+
+  DepthAttachment(const Device &device, const VkExtent2D &extent, VkFormat format);
+
+  ~DepthAttachment();
+
+  DepthAttachment(const DepthAttachment &) = delete;
+
+  DepthAttachment &operator=(const DepthAttachment &) = delete;
+
+  DepthAttachment(DepthAttachment &&) = default;
+
+  DepthAttachment &operator=(DepthAttachment &&) = default;
+
+}; // struct DepthAttachment
+
 } // namespace prism

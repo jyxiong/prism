@@ -67,6 +67,8 @@ namespace prism
 
     const VkMemoryRequirements &get_memory_requirements() const;
 
+    const VkImageLayout &get_layout() const;
+
     void bind_memory(const DeviceMemory& memory, VkDeviceSize offset = 0) const;
 
     void upload(const CommandPool &command_pool, const void *data, VkDeviceSize size, VkImageLayout target_layout = VK_IMAGE_LAYOUT_GENERAL) const;

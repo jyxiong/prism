@@ -6,6 +6,7 @@
 using namespace prism;
 
 BufferData::BufferData(const Device& device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
+  : size(size)
 {
   buffer = std::make_unique<Buffer>(device, size, usage);
   device_memory = std::make_unique<DeviceMemory>(device, buffer->get_memory_requirements(), properties);
@@ -16,6 +17,15 @@ BufferData::~BufferData()
 {
   device_memory.reset();
   buffer.reset();
+}
+
+BufferInfo BufferData::get_info() const
+{
+  BufferInfo info{};
+  info.buffer = buffer->get_handle();
+  info.offset = 0;
+  info.range = size;
+  return info;
 }
 
 void BufferData::upload(const void* data, VkDeviceSize size, VkDeviceSize offset)
@@ -39,4 +49,34 @@ void BufferData::upload(const CommandPool& cmd_pool, const void* data, VkDeviceS
     copy_region.size = size;
     cmd_buffer.copy_buffer(stage_buffer, *buffer, {copy_region});
   });
+}
+
+UniformBuffer::UniformBuffer(const Device& device, VkDeviceSize size)
+  : BufferData(device, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+{
+}
+
+void UniformBuffer::upload(const void* data, VkDeviceSize size)
+{
+  BufferData::upload(data, size);
+}
+
+VertexBuffer::VertexBuffer(const Device& device, VkDeviceSize size)
+  : BufferData(device, size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+{
+}
+
+void VertexBuffer::upload(const CommandPool& cmd_pool, const void* data, VkDeviceSize size)
+{
+  BufferData::upload(cmd_pool, data, size);
+}
+
+IndexBuffer::IndexBuffer(const Device& device, VkDeviceSize size)
+  : BufferData(device, size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+{
+}
+
+void IndexBuffer::upload(const CommandPool& cmd_pool, const void* data, VkDeviceSize size)
+{
+  BufferData::upload(cmd_pool, data, size);
 }

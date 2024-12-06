@@ -14,7 +14,7 @@ namespace prism::utils {
 
   std::unique_ptr<ImageData> create_color_image_data(const Device &device, const VkExtent2D &extent, VkFormat format);
 
-  std::unique_ptr<ImageData> create_depth_image_data(const Device &device, const VkExtent2D &extent);
+  std::unique_ptr<ImageData> create_depth_image_data(const Device &device, const VkExtent2D &extent, VkFormat format);
 
   std::unique_ptr<ImageData> create_texture_image_data(const Device &device, const VkExtent2D &extent, VkFormat format);
 }

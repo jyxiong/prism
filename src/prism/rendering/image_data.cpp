@@ -159,3 +159,42 @@ ColorAttachment::ColorAttachment(const Device &device, const VkExtent2D &extent,
       .set_aspect_mask(VK_IMAGE_ASPECT_COLOR_BIT);
   image_view = std::make_unique<ImageView>(*image, view_create_info);
 }
+
+ColorAttachment::~ColorAttachment()
+{
+  image_view.reset();
+  device_memory.reset();
+  image.reset();
+}
+
+DepthAttachment::DepthAttachment(const Device &device, const VkExtent2D &extent, VkFormat format)
+  : format(format)
+{
+  ImageCreateInfo create_info{};
+  create_info.set_image_type(VK_IMAGE_TYPE_2D)
+      .set_format(format)
+      .set_extent({extent.width, extent.height, 1})
+      .set_usage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+      .set_initial_layout(VK_IMAGE_LAYOUT_UNDEFINED);
+
+  image = std::make_unique<Image>(device, create_info);
+
+  device_memory =
+      std::make_unique<DeviceMemory>(device, image->get_memory_requirements(),
+                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+  image->bind_memory(*device_memory, 0);
+
+  ImageViewCreateInfo view_create_info{};
+  view_create_info.set_view_type(VK_IMAGE_VIEW_TYPE_2D)
+      .set_format(format)
+      .set_aspect_mask(VK_IMAGE_ASPECT_DEPTH_BIT);
+  image_view = std::make_unique<ImageView>(*image, view_create_info);
+}
+
+DepthAttachment::~DepthAttachment()
+{
+  image_view.reset();
+  device_memory.reset();
+  image.reset();
+}
