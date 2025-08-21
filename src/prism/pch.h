@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cstdio>
+#include <format>
 #include <fstream>
 #include <map>
 #include <memory>

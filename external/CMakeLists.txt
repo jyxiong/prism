@@ -1,9 +1,9 @@
 set(EXTERNAL_DIR "external")
 
-if (NOT fmt)
-    add_subdirectory(fmt)
-    set_target_properties(fmt PROPERTIES FOLDER ${EXTERNAL_DIR}/fmt)
-endif ()
+# if (NOT fmt)
+#     add_subdirectory(fmt)
+#     set_target_properties(fmt PROPERTIES FOLDER ${EXTERNAL_DIR}/fmt)
+# endif ()
 
 if (NOT TARGET glfw)
     option(GLFW_BUILD_EXAMPLES "" OFF)
@@ -40,7 +40,8 @@ if (NOT TARGET imgui)
 endif ()
 
 if (NOT TARGET spdlog)
-    option(SPDLOG_FMT_EXTERNAL "" ON)
+    option(SPDLOG_USE_STD_FORMAT "" ON)
+
     add_subdirectory(spdlog)
     set_target_properties(spdlog PROPERTIES FOLDER ${EXTERNAL_DIR}/spdlog)
 endif ()
