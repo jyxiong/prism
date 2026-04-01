@@ -1,10 +1,12 @@
 #include "prism/vulkan/acceleration_structure_instance.h"
 
+#include <cstring>
+
 using namespace prism;
 
 AccelerationStructureInstance &AccelerationStructureInstance::transform(const glm::mat3x4 &transform)
 {
-  memcpy(&m_handle.transform, &transform, sizeof(transform));  
+  std::memcpy(&m_handle.transform, &transform, sizeof(transform));  
   return *this;
 }
 
