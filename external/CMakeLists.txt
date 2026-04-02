@@ -1,9 +1,9 @@
 set(EXTERNAL_DIR "external")
 
-# if (NOT fmt)
-#     add_subdirectory(fmt)
-#     set_target_properties(fmt PROPERTIES FOLDER ${EXTERNAL_DIR}/fmt)
-# endif ()
+if(NOT TARGET EnTT)
+    add_subdirectory(entt)
+    set_target_properties(EnTT PROPERTIES FOLDER ${EXTERNAL_DIR}/entt)
+endif()
 
 if (NOT TARGET glfw)
     option(GLFW_BUILD_EXAMPLES "" OFF)
