@@ -32,8 +32,6 @@ Device::Device(const PhysicalDevice &physical_device, const ExtensionNames &exte
   device_info.pQueueCreateInfos = queue_infos.data();
   device_info.enabledExtensionCount = extensions.size();
   device_info.ppEnabledExtensionNames = extensions.data();
-  device_info.pQueueCreateInfos = queue_infos.data();
-  device_info.queueCreateInfoCount = queue_infos.size();
   device_info.pEnabledFeatures = nullptr;
   device_info.pNext = features.data();
 

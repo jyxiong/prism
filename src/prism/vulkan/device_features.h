@@ -1,61 +1,69 @@
 #pragma once
 
-namespace prism
-{
+#include <functional>
 
-  class DeviceFeatures
-  {
-  public:
-    DeviceFeatures() = default;
-    ~DeviceFeatures();
+namespace prism {
 
-    DeviceFeatures(const DeviceFeatures &) = delete;
-    DeviceFeatures &operator=(const DeviceFeatures &) = delete;
+class PhysicalDevice;
 
-    template <typename T>
-    T &get(VkStructureType type);
+class DeviceFeatures {
+public:
+  DeviceFeatures() = default;
+  ~DeviceFeatures();
 
-    template <typename T>
-    void request(VkStructureType type, VkBool32 T::*member);
+  DeviceFeatures(const DeviceFeatures &) = delete;
+  DeviceFeatures &operator=(const DeviceFeatures &) = delete;
 
-    void clear();
-    void *data() const;
+  template <typename FeatureStruct, VkStructureType stype>
+  FeatureStruct &get() {
+    if (auto itr = m_features.find(stype); itr != m_features.end())
+      return *reinterpret_cast<FeatureStruct *>(itr->second.first);
 
-  private:
-    struct FeatureHeader
-    {
-      VkStructureType sType;
-      void *pNext;
-    };
-
-    std::map<VkStructureType, FeatureHeader *> m_features;
-  };
-
-  template <typename T>
-  T &DeviceFeatures::get(VkStructureType type)
-  {
-    if (auto itr = m_features.find(type); itr != m_features.end())
-      return *reinterpret_cast<T *>(itr->second);
-
-    auto *feature = new T{};
-    feature->sType = type;
+    FeatureStruct *feature = new FeatureStruct{};
+    feature->sType = stype;
     feature->pNext = nullptr;
 
-    m_features[type] = reinterpret_cast<FeatureHeader *>(feature);
-
-    if constexpr (std::is_same_v<T, VkPhysicalDeviceFeatures>)
-    {
-      return feature->features;
-    }
+    m_features[stype].first = reinterpret_cast<FeatureHeader *>(feature);
+    m_features[stype].second = [](FeatureHeader *ptr) {
+      delete reinterpret_cast<FeatureStruct *>(ptr);
+    };
 
     return *feature;
   }
 
-  template <typename T>
-  void DeviceFeatures::request(VkStructureType type, VkBool32 T::*member)
-  {
-    auto &feature = get<T>(type);
+  template <typename FeatureStruct, VkStructureType stype>
+  void request(VkBool32 FeatureStruct::*member) {
+    auto &feature = get<FeatureStruct, stype>();
     feature.*member = VK_TRUE;
+
+    // 存入一个独立的 validator lambda，校验时不需要知道具体类型
+    m_validators.push_back([member](VkPhysicalDevice handle) -> bool {
+      FeatureStruct supported{};
+      supported.sType = stype;
+
+      VkPhysicalDeviceFeatures2 features2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+      features2.pNext = &supported;
+      vkGetPhysicalDeviceFeatures2(handle, &features2);
+
+      return (supported.*member) == VK_TRUE;
+    });
   }
 
-}
+  bool is_supported_by(const PhysicalDevice &physical_device) const;
+
+  void clear();
+  void *data() const;
+
+private:
+  struct FeatureHeader {
+    VkStructureType sType;
+    void *pNext;
+  };
+
+  using DeleteHandler = void (*)(FeatureHeader *);
+
+  std::map<VkStructureType, std::pair<FeatureHeader *, DeleteHandler>> m_features;
+  std::vector<std::function<bool(VkPhysicalDevice)>> m_validators;
+};
+
+} // namespace prism

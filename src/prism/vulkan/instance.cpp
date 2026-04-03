@@ -1,5 +1,6 @@
 #include "prism/vulkan/instance.h"
 
+#include "prism/vulkan/physical_device.h"
 #include "prism/vulkan/utils.h"
 
 using namespace prism;
@@ -96,6 +97,21 @@ const PhysicalDevice& Instance::pick_physical_device() const
   // FIXME: Should we return the first physical device if no discrete GPU found?
   LOG_ERROR("No discrete GPU found");
   return *m_physical_devices.front();
+}
+
+const PhysicalDevice& Instance::query_physical_device(
+    const ExtensionNames &required_extensions,
+    const DeviceFeatures &required_features) const
+{
+  for (const auto &device : m_physical_devices)
+  {
+    if (!device->check_extension_support(required_extensions))
+      continue;
+    if (!required_features.is_supported_by(*device))
+      continue;
+    return *device;
+  }
+  throw std::runtime_error("No physical device supports the required extensions and features");
 }
 
 void Instance::query_physical_devices()

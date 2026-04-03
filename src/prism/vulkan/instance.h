@@ -1,10 +1,12 @@
 #pragma once
 
-#include "prism/vulkan/physical_device.h"
+#include "prism/vulkan/device_features.h"
 #include "prism/vulkan/instance_extension_functions.h"
 
 namespace prism
 {
+  class PhysicalDevice;
+
   class Instance
   {
   public:
@@ -27,6 +29,8 @@ namespace prism
     VkInstance get_handle() const;
 
     const PhysicalDevice& pick_physical_device() const;
+    const PhysicalDevice& query_physical_device(const ExtensionNames &required_extensions,
+                                               const DeviceFeatures &required_features) const;
 
   private:
     void query_physical_devices();

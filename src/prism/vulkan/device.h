@@ -4,6 +4,7 @@
 #include "prism/vulkan/queue.h"
 #include "prism/vulkan/device_features.h"
 #include "prism/vulkan/device_extension_functions.h"
+#include <memory>
 
 namespace prism
 {
@@ -29,7 +30,9 @@ namespace prism
 
     const PhysicalDevice &get_physical_device() const;
 
-    const Queue &get_queue(uint32_t family_index, uint32_t index) const;
+    const Queue &get_queue(uint32_t family_index, uint32_t index = 0) const;
+
+    std::unique_ptr<Queue> query_queue(uint32_t queue_flags) const;
 
     const DeviceExtensionFunctions &get_extension_functions() const;
 

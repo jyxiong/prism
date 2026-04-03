@@ -1,33 +1,37 @@
 #include "prism/vulkan/device_features.h"
 
+#include "prism/vulkan/physical_device.h"
+
 using namespace prism;
 
-DeviceFeatures::~DeviceFeatures()
-{
-  clear();
-}
+DeviceFeatures::~DeviceFeatures() { clear(); }
 
-void DeviceFeatures::clear()
-{
-  for (auto &feature : m_features)
-  {
-    delete feature.second;
+bool DeviceFeatures::is_supported_by(const PhysicalDevice &physical_device) const {
+  for (const auto &validator : m_validators) {
+    if (!validator(physical_device.get_handle()))
+      return false;
   }
-
-  m_features.clear();
+  return true;
 }
 
-void *DeviceFeatures::data() const
-{
+void DeviceFeatures::clear() {
+  for (auto &feature : m_features) {
+    feature.second.second(feature.second.first);
+  }
+  m_features.clear();
+  m_validators.clear();
+}
+
+void *DeviceFeatures::data() const {
   if (m_features.empty())
     return nullptr;
 
   FeatureHeader *previous = nullptr;
-  for (auto itr = m_features.rbegin(); itr != m_features.rend(); ++itr)
-  {
-    itr->second->pNext = previous;
-    previous = itr->second;
+  for (auto itr = m_features.rbegin(); itr != m_features.rend(); ++itr) {
+    itr->second.first->pNext = previous;
+    previous = itr->second.first;
   }
 
-  return const_cast<void *>(reinterpret_cast<const void *>(m_features.begin()->second));
+  return const_cast<void *>(
+      reinterpret_cast<const void *>(m_features.begin()->second.first));
 }
